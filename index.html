@@ -6,19 +6,35 @@
 <meta name="theme-color" content="#121214">
 <title>AnimeList</title>
 
-<!-- MANIFIESTO WEB INTEGRADO PARA PWA -->
+<!-- MANIFIESTO WEB COMPLETO PARA PWA Y PWABUILDER -->
 <link rel="manifest" href="data:application/manifest+json;charset=utf-8,{
-  %22name%22: %22AnimeList%22,
+  %22name%22: %22AnimeList - Catálogo y Seguimiento%22,
   %22short_name%22: %22AnimeList%22,
+  %22description%22: %22Aplicación para buscar, seguir y organizar tus animés y mangas favoritos con integración en la API de AniList.%22,
   %22start_url%22: %22./index.html%22,
+  %22scope%22: %22./%22,
   %22display%22: %22standalone%22,
+  %22orientation%22: %22any%22,
   %22background_color%22: %22%23121214%22,
   %22theme_color%22: %22%23FF6400%22,
+  %22categories%22: [%22books%22, %22entertainment%22, %22utilities%22],
   %22icons%22: [
     {
       %22src%22: %22https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f3fa.png%22,
       %22sizes%22: %2272x72%22,
       %22type%22: %22image/png%22
+    },
+    {
+      %22src%22: %22https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f3fa.png%22,
+      %22sizes%22: %22192x192%22,
+      %22type%22: %22image/png%22,
+      %22purpose%22: %22any maskable%22
+    },
+    {
+      %22src%22: %22https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/1f3fa.png%22,
+      %22sizes%22: %22512x512%22,
+      %22type%22: %22image/png%22,
+      %22purpose%22: %22any maskable%22
     }
   ]
 }">
