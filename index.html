@@ -39,6 +39,14 @@
   html:not(.dark) .bg-bg { background-color: #f4f4f5 !important; }
   html:not(.dark) .bg-zinc-800 { background-color: #e4e4e7 !important; color: #18181b !important; }
   html:not(.dark) .border-line { border-color: #e4e4e7 !important; }
+  html:not(.dark) .text-brand { color: #c2410c !important; }
+  html:not(.dark) .text-yellow-400 { color: #a16207 !important; }
+  html:not(.dark) .text-red-400 { color: #b91c1c !important; }
+  html:not(.dark) .text-green-400 { color: #15803d !important; }
+  html:not(.dark) * { scrollbar-color: #d4d4d8 #ececef; }
+  html:not(.dark) ::-webkit-scrollbar-track { background: #ececef; }
+  html:not(.dark) ::-webkit-scrollbar-thumb { background: #c7c7cc; border-color: #ececef; }
+  html:not(.dark) ::-webkit-scrollbar-thumb:hover { background: #c2410c; }
 
   * { scrollbar-width: thin; scrollbar-color: #3a3a42 #16161a; }
   ::-webkit-scrollbar { width: 10px; height: 10px; }
@@ -67,7 +75,10 @@
       </button>
     </div>
     <div class="flex items-center gap-2">
-      <button id="themeToggleBtn" data-action="toggle-theme" class="px-4 py-2.5 rounded-xl bg-surface border border-line text-xs font-bold hover:border-brand transition cursor-pointer flex items-center gap-2">
+      <button data-action="export" class="px-3 py-2.5 rounded-xl bg-surface border border-line text-xs font-bold hover:border-brand transition cursor-pointer" title="Descargar copia de seguridad de tu lista">Exportar</button>
+      <button data-action="import" class="px-3 py-2.5 rounded-xl bg-surface border border-line text-xs font-bold hover:border-brand transition cursor-pointer" title="Restaurar lista desde una copia de seguridad">Importar</button>
+      <input id="importFile" type="file" accept="application/json,.json" class="hidden">
+      <button id="themeToggleBtn" data-action="toggle-theme" aria-label="Cambiar tema" class="px-4 py-2.5 rounded-xl bg-surface border border-line text-xs font-bold hover:border-brand transition cursor-pointer flex items-center gap-2">
         <span id="themeIcon">☀️</span> <span id="themeText">Modo Claro</span>
       </button>
     </div>
@@ -127,11 +138,6 @@
       <button data-action="toggle-library-view" class="px-4 py-2 rounded-lg bg-surface border border-line text-sm font-semibold hover:border-brand cursor-pointer shrink-0">← Volver al catálogo</button>
     </div>
 
-    <!-- RESULTADOS DE BÚSQUEDA EN MI LISTA -->
-    <section id="librarySearchPanel" class="hidden mb-6 rounded-2xl border border-brand/30 bg-gradient-to-b from-brand/10 via-surface to-surface p-3 sm:p-4 shadow-[0_0_40px_-18px_rgba(255,100,0,.55)]">
-      <div id="librarySearchResults" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3"></div>
-    </section>
-
     <!-- SELECTOR PRINCIPAL: ANIME / MANGA -->
     <div class="flex gap-3 mb-4 border-b border-line pb-3">
       <button id="mediaTypeAnimeBtn" data-action="switch-media-type" data-type="ANIME" class="px-5 py-2.5 rounded-xl font-bold text-sm bg-brand text-black transition cursor-pointer">
@@ -142,7 +148,7 @@
       </button>
     </div>
 
-    <!-- COLECCIÓN PERSONAL -->
+    <!-- COLECCIÓN PERSONAL (PRIMERO) -->
     <div class="flex items-center justify-between gap-3 mb-3">
       <h3 id="collectionTitle" class="font-bold text-lg">Colección de Anime</h3>
       <span id="libraryCount" class="text-xs font-semibold text-zinc-400 bg-surface border border-line rounded-full px-3 py-1 shrink-0"></span>
@@ -162,12 +168,25 @@
 
     <section id="library" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3"></section>
     <p id="empty" class="hidden text-center text-zinc-500 py-16">Aquí no hay nada todavía.</p>
+
+    <!-- RESULTADOS DE BÚSQUEDA EN LA BASE DE DATOS (DEBAJO DE LA COLECCIÓN) -->
+    <section id="librarySearchPanel" class="hidden mt-8 rounded-2xl border border-brand/30 bg-gradient-to-b from-brand/10 via-surface to-surface p-3 sm:p-4 shadow-[0_0_40px_-18px_rgba(255,100,0,.55)]" aria-labelledby="librarySearchTitle">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="w-1.5 h-5 rounded-full bg-brand shrink-0"></span>
+          <h3 id="librarySearchTitle" class="font-bold text-base sm:text-lg truncate">Resultados en AniList</h3>
+        </div>
+        <span id="librarySearchCount" class="text-[11px] font-semibold text-brand bg-brand/10 border border-brand/25 rounded-full px-2.5 py-1 shrink-0" aria-live="polite"></span>
+      </div>
+      <div id="librarySearchResults" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3"></div>
+      <p class="text-[11px] text-zinc-500 mt-3">Búsqueda en la base de datos de AniList · máximo 20 resultados. Tu colección personal aparece arriba.</p>
+    </section>
   </section>
 </main>
 
 <!-- MODAL SELECCIÓN DE ESTADO Y FAVORITOS AL AGREGAR -->
-<div id="addStatusModal" class="hidden fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
-  <div class="bg-surface border border-line w-full max-w-sm rounded-2xl p-5 shadow-2xl">
+<div id="addStatusModal" class="hidden fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="addModalTitle">
+  <div class="bg-surface border border-line w-full max-w-sm rounded-2xl p-5 shadow-2xl max-h-[90vh] overflow-y-auto">
     <h3 id="addModalTitle" class="font-bold text-base mb-1 truncate text-white">Agregar a Mi Lista</h3>
     
     <!-- Opción Favorito Toggle -->
@@ -179,8 +198,9 @@
     </div>
 
     <p class="text-xs text-zinc-400 mb-2">Selecciona el estado inicial:</p>
-    <div id="addStatusOptions" class="flex flex-col gap-2 mb-4"></div>
-    
+    <div id="addStatusOptions" class="flex flex-col gap-2 mb-3"></div>
+    <p id="addModalProgressHint" class="hidden mb-4 text-xs font-semibold rounded-lg border border-green-500/35 bg-green-500/10 text-green-400 px-3 py-2" aria-live="polite"></p>
+
     <div class="flex gap-2">
       <button data-action="confirm-add-modal" class="flex-1 py-2.5 rounded-xl bg-brand text-black font-bold text-xs hover:bg-orange-500 cursor-pointer">Guardar</button>
       <button data-action="close-add-modal" class="py-2.5 px-4 rounded-xl bg-zinc-800 text-xs font-semibold text-zinc-300 hover:bg-zinc-700 cursor-pointer">Cancelar</button>
@@ -213,12 +233,14 @@ const ANIME_STATUSES = {
 };
 
 const MANGA_STATUSES = {
-  watching: '📺 En espera',
-  airing:   '🔴 En emisión',
-  reading:  '📖 Leyendo',
-  done:     '✅ Leído',
-  later:    '📌 Leer después'
+  reading: '📖 Leyendo',
+  airing:  '🔴 En publicación',
+  later:   '📌 Leer después',
+  done:    '✅ Leído',
 };
+
+const statusDictOf = (type) => type === 'MANGA' ? MANGA_STATUSES : ANIME_STATUSES;
+const inProgressStatusOf = (type) => type === 'MANGA' ? 'reading' : 'watching';
 
 const SORT_IDLE = 'sort-btn shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border bg-surface border-line text-zinc-300 cursor-pointer';
 const SORT_ACTIVE = 'sort-btn shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border bg-brand border-brand text-black cursor-pointer';
@@ -287,7 +309,10 @@ const Store = {
       let progress = Math.max(0, parseInt(a.progress, 10) || 0);
       if (total) progress = Math.min(progress, total);
       const mediaType = a.type === 'MANGA' ? 'MANGA' : 'ANIME';
-      const validStatuses = mediaType === 'MANGA' ? MANGA_STATUSES : ANIME_STATUSES;
+      const validStatuses = statusDictOf(mediaType);
+      const rawStatus = mediaType === 'MANGA' && a.status === 'watching' ? 'reading' : a.status;
+      const status = rawStatus in validStatuses ? rawStatus : 'later';
+      if (status === 'done' && total) progress = total;
       out.items[id] = {
         id,
         type: mediaType,
@@ -296,7 +321,7 @@ const Store = {
         total, progress,
         genres: Array.isArray(a.genres) ? a.genres.filter(x => typeof x === 'string') : [],
         tags: Array.isArray(a.tags) ? a.tags.filter(x => typeof x === 'string') : [],
-        status: a.status in validStatuses ? a.status : 'later',
+        status,
         fav: !!a.fav,
         addedAt: Number(a.addedAt) || Date.now(),
       };
@@ -336,11 +361,11 @@ async function gql(query, variables, signal) {
   return json.data;
 }
 
-const ANILIST_PAGINATED_QUERY = `query($q:String, $genre:String, $tag:String, $page:Int, $perPage:Int, $sort:[MediaSort]){
+const ANILIST_PAGINATED_QUERY = `query($q:String, $genre:String, $tag:String, $type:MediaType, $page:Int, $perPage:Int, $sort:[MediaSort]){
   Page(page:$page, perPage:$perPage){
     pageInfo{ total perPage currentPage lastPage hasNextPage }
-    media(search:$q, genre:$genre, tag:$tag, isAdult:false, sort:$sort){
-      id type title{romaji english native} coverImage{large} episodes chapters status seasonYear genres tags{name} averageScore popularity
+    media(search:$q, genre:$genre, tag:$tag, type:$type, isAdult:false, sort:$sort){
+      id type title{romaji english native} coverImage{large} episodes chapters volumes status seasonYear genres tags{name} averageScore popularity
     }
   }
 }`;
@@ -351,7 +376,7 @@ const DETAIL_Q = `query($id:Int){Media(id:$id){
 }}`;
 
 let apiCtrl = null;
-async function fetchMediaPage({ q = null, genre = null, tag = null, page = 1, sort = ['POPULARITY_DESC'], perPage = PER_PAGE } = {}) {
+async function fetchMediaPage({ q = null, genre = null, tag = null, type = null, page = 1, sort = ['POPULARITY_DESC'], perPage = PER_PAGE } = {}) {
   apiCtrl?.abort();
   apiCtrl = new AbortController();
 
@@ -362,6 +387,7 @@ async function fetchMediaPage({ q = null, genre = null, tag = null, page = 1, so
   if (q) vars.q = q;
   if (genre) vars.genre = genre;
   if (tag) vars.tag = tag;
+  if (type) vars.type = type;
 
   const data = await gql(ANILIST_PAGINATED_QUERY, vars, apiCtrl.signal);
   const pageInfo = data.Page.pageInfo;
@@ -369,22 +395,10 @@ async function fetchMediaPage({ q = null, genre = null, tag = null, page = 1, so
 
   media.forEach((m) => mediaCache.set(m.id, { ...mediaCache.get(m.id), ...m }));
 
-  if (q) {
-    const qLower = q.toLowerCase();
-    media = media.filter(m => {
-      const tEng = (m.title?.english || '').toLowerCase();
-      const tRom = (m.title?.romaji || '').toLowerCase();
-      const tNat = (m.title?.native || '').toLowerCase();
-      return tEng.includes(qLower) || tRom.includes(qLower) || tNat.includes(qLower);
-    });
-  }
-
   if (hiddenGems) {
     media = media.filter(m => (m.averageScore || 0) >= 75 && (m.popularity || 0) < 60000);
     media.sort((a, b) => (b.averageScore || 0) - (a.averageScore || 0));
     media = media.slice(0, PER_PAGE);
-  } else if (!q && activeCategory.label === 'Todos' && sortKey === 'POPULARITY_DESC') {
-    media.sort((a, b) => collator.compare(titleOf(a), titleOf(b)));
   } else if (sortKey === 'TITLE_ENGLISH') {
     media = media.slice().sort((a, b) => collator.compare(titleOf(a), titleOf(b)));
   }
@@ -420,7 +434,10 @@ function hideLibrarySearch() {
   librarySearchToken++;
   $('#librarySearchPanel').classList.add('hidden');
   $('#librarySearchResults').innerHTML = '';
+  $('#librarySearchCount').textContent = '';
 }
+
+const LIBRARY_SEARCH_MAX = 20;
 
 function searchSkeleton() {
   return Array.from({ length: 10 }, () => `
@@ -439,17 +456,23 @@ async function runLibrarySearch() {
   const q = $('#searchInput').value.trim();
   const panel = $('#librarySearchPanel');
   const box = $('#librarySearchResults');
+  const count = $('#librarySearchCount');
+  const typeLabel = currentMediaType === 'MANGA' ? 'manga' : 'anime';
 
   if (q.length < 2) {
     if (!q) { hideLibrarySearch(); return; }
     librarySearchToken++;
     panel.classList.remove('hidden');
+    $('#librarySearchTitle').textContent = 'Resultados en AniList';
+    count.textContent = '';
     box.innerHTML = `<p class="col-span-full text-sm text-zinc-400 py-6 text-center">Escribe al menos 2 caracteres para buscar en la base de datos.</p>`;
     return;
   }
 
   const token = ++librarySearchToken;
   panel.classList.remove('hidden');
+  $('#librarySearchTitle').textContent = `Resultados de ${typeLabel} para “${q}”`;
+  count.textContent = 'Buscando…';
   box.innerHTML = searchSkeleton();
 
   try {
@@ -457,18 +480,25 @@ async function runLibrarySearch() {
       q,
       genre: activeCategory.genre,
       tag: activeCategory.tag,
+      type: currentMediaType,
       page: 1,
       sort: ['SEARCH_MATCH'],
-      perPage: 20,
+      perPage: LIBRARY_SEARCH_MAX,
     });
     if (token !== librarySearchToken || !showingLibrary) return;
-    box.innerHTML = media.length
-      ? media.map(resultCard).join('')
-      : `<p class="col-span-full text-sm text-zinc-400 py-8 text-center">No se encontró ningún resultado para “${esc(q)}”.</p>`;
+    const results = media.slice(0, LIBRARY_SEARCH_MAX);
+    count.textContent = results.length
+      ? `${results.length} ${results.length === 1 ? 'resultado' : 'resultados'} · máx. ${LIBRARY_SEARCH_MAX}`
+      : 'Sin resultados';
+    box.innerHTML = results.length
+      ? results.map(resultCard).join('')
+      : `<p class="col-span-full text-sm text-zinc-400 py-8 text-center">No se encontró ningún ${typeLabel} para “${esc(q)}” en la base de datos.</p>`;
   } catch (e) {
     if (token !== librarySearchToken || e.name === 'AbortError') return;
+    count.textContent = 'Error';
     box.innerHTML = `<div class="col-span-full text-center py-8">
       <p class="text-sm text-red-400">${esc(e.message)}. Revisa tu conexión.</p>
+      <button data-action="retry-library-search" class="mt-3 px-4 py-2 rounded-lg bg-surface border border-line text-sm font-semibold hover:border-brand cursor-pointer">Reintentar búsqueda</button>
     </div>`;
   }
 }
@@ -494,19 +524,20 @@ function toggleLibraryView() {
 
 // Modal para seleccionar estado al agregar
 function promptAddStatus(id) {
+  if (Store.get(id)) { toast('Ya está en tu lista'); return; }
   const m = mediaCache.get(id);
-  if (!m) return;
+  if (!m) { toast('No se pudo cargar la información. Abre el detalle y reintenta.'); return; }
   pendingItemToAdd = m;
-  const isManga = m.type === 'MANGA';
-  const statusDict = isManga ? MANGA_STATUSES : ANIME_STATUSES;
-  
-  pendingModalStatus = isManga ? 'reading' : 'watching';
+  const statusDict = statusDictOf(m.type);
+
+  pendingModalStatus = inProgressStatusOf(m.type);
   pendingModalFav = false;
 
   $('#addModalTitle').textContent = `Agregar "${titleOf(m)}"`;
   updateModalFavUI();
   renderModalStatusOptions(statusDict);
 
+  document.body.style.overflow = 'hidden';
   $('#addStatusModal').classList.remove('hidden');
 }
 
@@ -542,6 +573,21 @@ function renderModalStatusOptions(statusDict) {
     };
     optionsBox.appendChild(btn);
   });
+
+  renderModalProgressHint();
+}
+
+function renderModalProgressHint() {
+  const hint = $('#addModalProgressHint');
+  const m = pendingItemToAdd;
+  if (!m || pendingModalStatus !== 'done') { hint.classList.add('hidden'); hint.textContent = ''; return; }
+  const isManga = m.type === 'MANGA';
+  const total = isManga ? m.chapters : m.episodes;
+  const unit = isManga ? 'capítulos' : 'episodios';
+  hint.textContent = total
+    ? `✓ Se marcarán los ${total} ${unit} como completados (${total}/${total}).`
+    : `AniList aún no confirma el total de ${unit}; se guardará como completado y podrás fijar el número a mano.`;
+  hint.classList.remove('hidden');
 }
 
 $('#addModalFavBtn').addEventListener('click', () => {
@@ -552,6 +598,7 @@ $('#addModalFavBtn').addEventListener('click', () => {
 function closeAddModal() {
   $('#addStatusModal').classList.add('hidden');
   pendingItemToAdd = null;
+  if ($('#modal').classList.contains('hidden')) document.body.style.overflow = '';
 }
 
 function confirmAddModal() {
@@ -561,28 +608,48 @@ function confirmAddModal() {
   closeAddModal();
 }
 
+function syncMediaTypeButtons() {
+  const isAnime = currentMediaType !== 'MANGA';
+  const active = 'bg-brand text-black';
+  const idle = 'bg-surface border border-line text-zinc-300 hover:border-brand';
+  $('#mediaTypeAnimeBtn').className = `px-5 py-2.5 rounded-xl font-bold text-sm transition cursor-pointer ${isAnime ? active : idle}`;
+  $('#mediaTypeMangaBtn').className = `px-5 py-2.5 rounded-xl font-bold text-sm transition cursor-pointer ${!isAnime ? active : idle}`;
+  $('#mediaTypeAnimeBtn').setAttribute('aria-pressed', String(isAnime));
+  $('#mediaTypeMangaBtn').setAttribute('aria-pressed', String(!isAnime));
+}
+
 function addAnimeWithStatus(m, initialStatus, isFav = false) {
   if (Store.get(m.id)) return;
-  const isManga = m.type === 'MANGA';
+  const type = m.type === 'MANGA' ? 'MANGA' : 'ANIME';
+  const isManga = type === 'MANGA';
   const totalCount = isManga ? (m.chapters || null) : (m.episodes || null);
+  const validStatuses = statusDictOf(type);
+  const status = initialStatus in validStatuses ? initialStatus : inProgressStatusOf(type);
+  const progress = status === 'done' && totalCount ? totalCount : 0;
 
   Store.data.items[m.id] = {
     id: m.id,
-    type: isManga ? 'MANGA' : 'ANIME',
+    type,
     title: titleOf(m),
     cover: m.coverImage?.large || '',
     genres: Array.isArray(m.genres) ? m.genres : [],
     tags: Array.isArray(m.tags) ? m.tags.map(t => typeof t === 'string' ? t : t.name).filter(Boolean) : [],
     total: totalCount,
-    progress: 0,
-    status: initialStatus,
+    progress,
+    status,
     fav: isFav,
     addedAt: Date.now(),
   };
   Store.save();
+  if (currentMediaType !== type) {
+    currentMediaType = type;
+    currentTab = 'all';
+    syncMediaTypeButtons();
+  }
   renderAll();
   refreshCardControls(m.id);
-  toast(`"${titleOf(m)}" agregado a tu lista`);
+  const completed = status === 'done' && totalCount ? ` · ${totalCount}/${totalCount} ${isManga ? 'capítulos' : 'episodios'}` : '';
+  toast(`"${titleOf(m)}" agregado a tu ${isManga ? 'colección de manga' : 'colección de anime'}${completed}`);
 }
 
 function changeEpisode(id, delta) {
@@ -613,7 +680,7 @@ function checkProgressStatus(a) {
   if (a.total && a.progress >= a.total && a.status !== 'done') {
     a.status = 'done'; toast('¡Completaste ' + a.title + '!');
   } else if (a.status === 'later' && a.progress > 0) {
-    a.status = 'watching';
+    a.status = inProgressStatusOf(a.type);
   }
 }
 
@@ -654,14 +721,14 @@ function libraryCard(a) {
     <div class="relative">
       <button data-action="detail" class="block w-full aspect-[2/3] bg-black cursor-pointer" aria-label="Ver detalle de ${esc(a.title)}">
         <img src="${esc(a.cover)}" alt="" loading="lazy" decoding="async" class="w-full h-full object-cover">
-        <span class="absolute bottom-1 left-1 bg-black/80 text-[10px] ${isManga ? 'text-purple-300' : 'text-brand'} px-1.5 py-0.5 rounded border border-line font-bold">${isManga ? 'MANGA' : 'ANIME'}</span>
+        <span class="absolute bottom-1 left-1 bg-black/80 text-[10px] ${isManga ? 'text-purple-300' : 'text-orange-400'} px-1.5 py-0.5 rounded border border-line font-bold">${isManga ? 'MANGA' : 'ANIME'}</span>
       </button>
       <button data-action="fav"
-        class="absolute top-1.5 left-1.5 w-8 h-8 rounded-full bg-black/55 backdrop-blur-sm border border-white/10 text-xs leading-none flex items-center justify-center cursor-pointer transition hover:bg-black/80 hover:border-white/25 active:scale-90 ${a.fav ? 'text-yellow-300' : 'text-white/85'}"
-        aria-pressed="${a.fav}" aria-label="Favorito" title="Favorito">${a.fav ? '⭐' : '☆'}</button>
+        class="absolute top-1.5 left-1.5 w-9 h-9 rounded-full bg-black/55 backdrop-blur-sm border border-white/10 text-lg leading-none flex items-center justify-center cursor-pointer transition hover:bg-black/80 hover:border-white/25 active:scale-90 focus-visible:outline-2 focus-visible:outline-brand ${a.fav ? 'text-yellow-300' : 'text-white/85'}"
+        aria-pressed="${a.fav}" aria-label="${a.fav ? 'Quitar de favoritos' : 'Marcar como favorito'}" title="${a.fav ? 'Quitar de favoritos' : 'Marcar como favorito'}">${a.fav ? '⭐' : '☆'}</button>
       <button data-action="remove"
-        class="absolute top-1.5 right-1.5 w-8 h-8 rounded-full bg-black/55 backdrop-blur-sm border border-white/10 text-white/85 flex items-center justify-center cursor-pointer transition hover:bg-red-500/85 hover:border-red-300/50 hover:text-white active:scale-90"
-        aria-label="Quitar" title="Quitar">
+        class="absolute top-1.5 right-1.5 w-9 h-9 rounded-full bg-black/55 backdrop-blur-sm border border-white/10 text-white/85 flex items-center justify-center cursor-pointer transition hover:bg-red-500/85 hover:border-red-300/50 hover:text-white active:scale-90 focus-visible:outline-2 focus-visible:outline-red-400"
+        aria-label="Quitar de mi lista" title="Quitar de mi lista">
         <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
       </button>
     </div>
@@ -700,29 +767,28 @@ function renderLibrary() {
   else if (currentTab !== 'all') items = items.filter((a) => a.status === currentTab);
 
   $('#library').innerHTML = items.map(libraryCard).join('');
+  const unitLabel = (n) => isManga ? (n === 1 ? 'manga' : 'mangas') : (n === 1 ? 'animé' : 'animés');
   $('#libraryCount').textContent = items.length === allOfType.length
-    ? `${allOfType.length} ${isManga ? 'mangas' : 'animés'}`
-    : `${items.length} de ${allOfType.length} ${isManga ? 'mangas' : 'animés'}`;
+    ? `${allOfType.length} ${unitLabel(allOfType.length)}`
+    : `${items.length} de ${allOfType.length} ${unitLabel(allOfType.length)}`;
 
   const empty = $('#empty');
   empty.classList.toggle('hidden', items.length > 0);
   if (!items.length) {
     empty.textContent = allOfType.length
       ? `Ningún ${isManga ? 'manga' : 'animé'} de tu colección coincide con los filtros actuales.`
-      : `No tienes ${isManga ? 'mangas' : 'animés'} guardados en tu lista. Explora el catálogo arriba para agregar.`;
+      : `No tienes ${isManga ? 'mangas' : 'animés'} guardados. Usa el buscador y agrégalos con “+ Agregar”; los resultados de AniList aparecen debajo de tu colección.`;
   }
 }
 
 function renderAll() { renderTabs(); renderLibrary(); }
 
 function refreshCardControls(id) {
-  const card = document.querySelector(`article[data-id="${id}"]`);
-  if (!card) return;
   const inList = Store.get(id);
-  const container = card.querySelector('.card-action-container');
-  if (container) {
-    container.innerHTML = cardActionControlsHTML(id, inList, mediaCache.get(id));
-  }
+  const m = mediaCache.get(id);
+  document.querySelectorAll(`article[data-id="${id}"] .card-action-container`).forEach((container) => {
+    container.innerHTML = cardActionControlsHTML(id, inList, m);
+  });
 }
 
 function cardActionControlsHTML(id, inList, m) {
@@ -758,8 +824,8 @@ function resultCard(m) {
   return `<article class="card-in bg-surface border border-line rounded-xl overflow-hidden flex flex-col" data-id="${m.id}">
     <button data-action="detail" class="block aspect-[2/3] bg-black relative cursor-pointer" aria-label="Ver detalle">
       <img src="${esc(m.coverImage?.large)}" alt="" loading="lazy" decoding="async" class="w-full h-full object-cover">
-      <span class="absolute bottom-1 left-1 bg-black/80 text-[10px] text-zinc-300 px-1.5 py-0.5 rounded border border-line font-medium">${esc(mainGenre)}</span>
-      <span class="absolute top-1 left-1 bg-black/80 text-[10px] ${isManga ? 'text-purple-300' : 'text-brand'} font-bold px-1.5 py-0.5 rounded border border-line">${isManga ? 'MANGA' : 'ANIME'}</span>
+      <span class="absolute bottom-1 left-1 bg-black/80 text-[10px] text-[#e4e4e7] px-1.5 py-0.5 rounded border border-line font-medium">${esc(mainGenre)}</span>
+      <span class="absolute top-1 left-1 bg-black/80 text-[10px] ${isManga ? 'text-purple-300' : 'text-orange-400'} font-bold px-1.5 py-0.5 rounded border border-line">${isManga ? 'MANGA' : 'ANIME'}</span>
     </button>
     <div class="p-2 flex flex-col gap-2 flex-1">
       <h3 class="text-sm font-semibold leading-tight line-clamp-2">${esc(titleOf(m))}</h3>
@@ -861,8 +927,12 @@ const runSearch = debounce(performSearch, 400);
 $('#searchInput').addEventListener('input', runSearch);
 $('#searchInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); performSearch(); } });
 
+let detailToken = 0;
+
 async function openDetail(id) {
   const modal = $('#modal'), body = $('#modalBody');
+  const token = ++detailToken;
+  const alive = () => token === detailToken && !modal.classList.contains('hidden');
   modal.classList.remove('hidden');
   document.body.style.overflow = 'hidden';
 
@@ -878,7 +948,7 @@ async function openDetail(id) {
         <img src="${esc(m.coverImage?.large)}" alt="" class="w-28 sm:w-36 rounded-lg object-cover self-start">
         <div class="min-w-0 flex-1">
           <div class="flex items-center gap-2">
-            <span class="text-xs font-bold px-2 py-0.5 rounded ${isManga ? 'bg-purple-900/80 text-purple-200' : 'bg-brand/20 text-brand'}">${isManga ? 'MANGA' : 'ANIME'}</span>
+            <span class="text-xs font-bold px-2 py-0.5 rounded shrink-0 ${isManga ? 'bg-purple-900/80 text-purple-200' : 'bg-brand/20 text-brand'}">${isManga ? 'MANGA' : 'ANIME'}</span>
             <h2 id="mTitle" class="text-xl font-bold leading-tight truncate">${esc(titleOf(m))}</h2>
           </div>
           <p class="text-sm text-yellow-400 font-semibold mt-1 flex items-center gap-1">${scoreVal}</p>
@@ -897,20 +967,35 @@ async function openDetail(id) {
       </div>`;
   };
 
-  const base = mediaCache.get(id) || { id, title: { romaji: Store.get(id)?.title }, coverImage: { large: Store.get(id)?.cover } };
+  const stored = Store.get(id);
+  const base = mediaCache.get(id) || {
+    id,
+    type: stored?.type || 'ANIME',
+    title: { romaji: stored?.title || 'Sin título' },
+    coverImage: { large: stored?.cover || '' },
+    episodes: stored?.type === 'MANGA' ? null : stored?.total ?? null,
+    chapters: stored?.type === 'MANGA' ? stored?.total ?? null : null,
+    genres: stored?.genres || [],
+  };
+  if (!mediaCache.has(id)) mediaCache.set(id, base);
   draw(base, true);
   try {
     const detail = await fetchDetail(id);
+    if (!alive()) return;
     draw(detail, false, detail.description ? 'Traduciendo sinopsis al español…' : 'Sin sinopsis disponible.');
     if (detail.description) {
       try {
         const translated = await translateDescriptionToSpanish(detail.description);
-        if (!$('#modal').classList.contains('hidden')) draw(detail, false, translated);
+        if (alive()) draw(detail, false, translated);
       } catch (translationError) {
-        if (!$('#modal').classList.contains('hidden')) draw(detail, false, stripHtml(detail.description));
+        if (alive()) draw(detail, false, stripHtml(detail.description));
       }
     }
-  } catch (e) { draw(base, false, 'No se pudo cargar la sinopsis.'); toast(e.message); }
+  } catch (e) {
+    if (!alive()) return;
+    draw(base, false, 'No se pudo cargar la sinopsis.');
+    toast(e.message);
+  }
 }
 
 const stripHtml = (s) => String(s || '').replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '');
@@ -930,14 +1015,44 @@ async function translateDescriptionToSpanish(description) {
   return translated;
 }
 
-function closeDetail() { $('#modal').classList.add('hidden'); document.body.style.overflow = ''; }
+function closeDetail() {
+  detailToken++;
+  $('#modal').classList.add('hidden');
+  if ($('#addStatusModal').classList.contains('hidden')) document.body.style.overflow = '';
+}
 $('#modal').addEventListener('click', (e) => { if (e.target.id === 'modal') closeDetail(); });
-document.addEventListener('keydown', (e) => { 
-  if (e.key === 'Escape') {
-    closeDetail();
-    closeAddModal();
-  } 
+$('#addStatusModal').addEventListener('click', (e) => { if (e.target.id === 'addStatusModal') closeAddModal(); });
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  if (!$('#addStatusModal').classList.contains('hidden')) closeAddModal();
+  else closeDetail();
 });
+
+function exportDB() {
+  const items = Store.list();
+  if (!items.length) return toast('Tu lista está vacía: nada que exportar');
+  const blob = new Blob([JSON.stringify(Store.data, null, 2)], { type: 'application/json' });
+  const name = `animelist-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  toast(`Copia de seguridad exportada (${items.length})`);
+}
+
+async function importDB(file) {
+  try {
+    const clean = Store.sanitize(JSON.parse(await file.text()));
+    const n = Object.keys(clean.items).length;
+    if (!n) return toast('El archivo no contiene títulos válidos');
+    Object.assign(Store.data.items, clean.items);
+    flush();
+    renderAll();
+    syncMediaTypeButtons();
+    toast(`${n} títulos importados`);
+  } catch { toast('Archivo no válido: debe ser un JSON exportado por la app'); }
+}
+$('#importFile').addEventListener('change', (e) => { const f = e.target.files[0]; if (f) importDB(f); e.target.value = ''; });
 
 function toggleTheme() {
   const html = document.documentElement;
@@ -995,12 +1110,12 @@ document.addEventListener('click', (e) => {
       toggleLibraryView();
       break;
     case 'switch-media-type': {
-      currentMediaType = btn.dataset.type;
+      if (currentMediaType === btn.dataset.type) break;
+      currentMediaType = btn.dataset.type === 'MANGA' ? 'MANGA' : 'ANIME';
       currentTab = 'all';
-      const isAnime = currentMediaType === 'ANIME';
-      $('#mediaTypeAnimeBtn').className = `px-5 py-2.5 rounded-xl font-bold text-sm transition cursor-pointer ${isAnime ? 'bg-brand text-black' : 'bg-surface border border-line text-zinc-300 hover:border-brand'}`;
-      $('#mediaTypeMangaBtn').className = `px-5 py-2.5 rounded-xl font-bold text-sm transition cursor-pointer ${!isAnime ? 'bg-brand text-black' : 'bg-surface border border-line text-zinc-300 hover:border-brand'}`;
+      syncMediaTypeButtons();
       renderAll();
+      runLibrarySearch();
       break;
     }
     case 'select-category': {
@@ -1063,6 +1178,9 @@ document.addEventListener('click', (e) => {
       break;
     case 'detail': openDetail(id); break;
     case 'modal-close': closeDetail(); break;
+    case 'retry-library-search': runLibrarySearch(); break;
+    case 'export': exportDB(); break;
+    case 'import': $('#importFile').click(); break;
     case 'clear-search':
       $('#searchInput').value = '';
       activeCategory = ALL_CATEGORIES[0];
@@ -1093,6 +1211,7 @@ document.addEventListener('change', (e) => {
 initTheme();
 Store.load();
 renderCategoryDropdown();
+syncMediaTypeButtons();
 renderAll();
 syncSearchUI();
 loadMainCatalog();
