@@ -20,16 +20,12 @@
   html { -webkit-tap-highlight-color: transparent; }
   body { padding: env(safe-area-inset-top) env(safe-area-inset-right) calc(env(safe-area-inset-bottom) + 64px) env(safe-area-inset-left); transition: background-color 0.2s, color 0.2s; }
   
-  /* Modo Claro Overrides */
   html:not(.dark) {
     --color-bg: #f4f4f5;
     --color-surface: #ffffff;
     --color-line: #e4e4e7;
   }
-  html:not(.dark) body {
-    background-color: #f4f4f5;
-    color: #18181b;
-  }
+  html:not(.dark) body { background-color: #f4f4f5; color: #18181b; }
   html:not(.dark) .text-white { color: #18181b !important; }
   html:not(.dark) .text-zinc-100 { color: #18181b !important; }
   html:not(.dark) .text-zinc-200 { color: #27272a !important; }
@@ -43,71 +39,165 @@
   html:not(.dark) .text-yellow-400 { color: #a16207 !important; }
   html:not(.dark) .text-red-400 { color: #b91c1c !important; }
   html:not(.dark) .text-green-400 { color: #15803d !important; }
-  html:not(.dark) * { scrollbar-color: #d4d4d8 #ececef; }
-  html:not(.dark) ::-webkit-scrollbar-track { background: #ececef; }
-  html:not(.dark) ::-webkit-scrollbar-thumb { background: #c7c7cc; border-color: #ececef; }
-  html:not(.dark) ::-webkit-scrollbar-thumb:hover { background: #c2410c; }
 
   * { scrollbar-width: thin; scrollbar-color: #3a3a42 #16161a; }
-  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
   ::-webkit-scrollbar-track { background: #16161a; }
-  ::-webkit-scrollbar-thumb { background: #3a3a42; border-radius: 999px; border: 2px solid #16161a; }
+  ::-webkit-scrollbar-thumb { background: #3a3a42; border-radius: 999px; }
   ::-webkit-scrollbar-thumb:hover { background: #FF6400; }
+  html:not(.dark) * { scrollbar-color: #c9c9d1 #ececed; }
+  html:not(.dark) ::-webkit-scrollbar-track { background: #ececed; }
+  html:not(.dark) ::-webkit-scrollbar-thumb { background: #c9c9d1; }
+  html:not(.dark) ::-webkit-scrollbar-thumb:hover { background: #FF6400; }
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { scrollbar-width: none; }
-  @keyframes cardIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-  .card-in { animation: cardIn .3s cubic-bezier(.22,.8,.36,1) both; }
-  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+  .format-badge { color: #f4f4f5; }
+  .format-badge[data-format="TV"] { color: #ff8a3d; }
+  .format-badge[data-format="MOVIE"] { color: #c084fc; }
+  .format-badge[data-format="OVA"] { color: #7dd3fc; }
+  .format-badge[data-format="ONA"] { color: #60a5fa; }
+  .format-badge[data-format="SPECIAL"] { color: #ff3b30; }
+  .format-badge[data-format="MANGA"] { color: #ffffff; }
+  .format-badge[data-format="NOVEL"] { color: #6ee7b7; }
+  .format-badge[data-format="ONE_SHOT"] { color: #fcd34d; }
+
+  select option { background-color: #1c1c20; color: #f4f4f5; }
+  html:not(.dark) select option { background-color: #ffffff; color: #18181b; }
+  @keyframes cardIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .card-in { animation: cardIn .25s cubic-bezier(.22,.8,.36,1) both; }
+
+  .g-step { flex: none; width: 20px; height: 20px; border-radius: 7px; background: linear-gradient(135deg,#FF6400,#ff9a3d); color: #1a1a1a; font-weight: 800; font-size: 11px; display: flex; align-items: center; justify-content: center; margin-top: 1px; }
+  .g-code { font-family: ui-monospace, monospace; font-size: .92em; background: rgba(255,100,0,.12); color: #ff9a3d; border: 1px solid rgba(255,100,0,.25); padding: 0 4px; border-radius: 5px; }
+  html:not(.dark) .g-code { color: #c2410c; }
+  html:not(.dark) #gClientIdInput, html:not(.dark) #gServeCmd { background: #f4f4f5 !important; color: #27272a !important; }
+  html:not(.dark) .bg-black\/40, html:not(.dark) .bg-black\/45 { background: #ececed !important; }
+
+  #userMenu { animation: menuIn .16s cubic-bezier(.22,.8,.36,1) both; transform-origin: top right; }
+  @keyframes menuIn { from { opacity: 0; transform: translateY(-6px) scale(.97); } to { opacity: 1; transform: none; } }
+
+  #syncPill { display: none; }
+  #syncPill.is-visible { display: inline-flex; }
+  #syncPill[data-state="synced"] { border-color: rgba(34,197,94,.4); background: rgba(34,197,94,.1); color: #4ade80; }
+  #syncPill[data-state="synced"] #syncDot { background: #22c55e; box-shadow: 0 0 8px #22c55e; }
+  #syncPill[data-state="syncing"] { border-color: rgba(255,100,0,.4); background: rgba(255,100,0,.1); color: #ff9a3d; }
+  #syncPill[data-state="syncing"] #syncDot { background: #FF6400; animation: pulseDot 1s ease-in-out infinite; }
+  #syncPill[data-state="error"] { border-color: rgba(239,68,68,.45); background: rgba(239,68,68,.1); color: #f87171; }
+  #syncPill[data-state="error"] #syncDot { background: #ef4444; }
+  #syncPill[data-state="offline"] { border-color: rgba(161,161,170,.4); background: rgba(161,161,170,.1); color: #a1a1aa; }
+  #syncPill[data-state="offline"] #syncDot { background: #71717a; }
+  html:not(.dark) #syncPill[data-state="synced"] { color: #15803d; }
+  html:not(.dark) #syncPill[data-state="syncing"] { color: #c2410c; }
+  html:not(.dark) #syncPill[data-state="error"] { color: #b91c1c; }
+  @keyframes pulseDot { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .35; transform: scale(.7); } }
+
+  #googleSignInBtn:disabled { opacity: .6; cursor: wait; }
+  .spin { animation: spin 1s linear infinite; display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
 
 <body class="bg-bg text-zinc-100 min-h-screen font-sans antialiased">
 
-<main class="max-w-6xl mx-auto px-4 py-5">
+<main class="max-w-6xl mx-auto px-4 py-4">
 
-  <!-- ENCABEZADO Y CAMBIO DE TEMA -->
-  <header class="flex flex-wrap items-center justify-between gap-3 mb-5">
+  <!-- ENCABEZADO Y LOGIN -->
+  <header class="flex flex-wrap items-center justify-between gap-3 mb-4">
     <div class="flex items-center gap-3">
-      <h1 class="text-2xl font-bold tracking-tight"><span class="text-brand">Anime</span><span class="text-white">List</span></h1>
+      <h1 id="logoHomeBtn" role="button" tabindex="0" class="text-2xl font-bold tracking-tight cursor-pointer select-none rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-brand" title="Volver al inicio">
+        <span class="text-brand">Anime</span><span class="text-white">List</span>
+      </h1>
       <button id="listViewBtn" data-action="toggle-library-view" aria-pressed="false"
-        class="px-5 py-2.5 rounded-xl bg-brand text-black font-extrabold text-base sm:text-lg shadow-lg hover:bg-orange-500 active:scale-95 transition cursor-pointer">
-        Mi Lista
+        class="px-4 py-2 rounded-xl bg-brand text-black font-extrabold text-sm sm:text-base shadow-lg hover:bg-orange-500 active:scale-95 transition cursor-pointer">
+        Colección
       </button>
     </div>
+    
     <div class="flex items-center gap-2">
-      <button data-action="export" class="px-3 py-2.5 rounded-xl bg-surface border border-line text-xs font-bold hover:border-brand transition cursor-pointer" title="Descargar copia de seguridad de tu lista">Exportar</button>
-      <button data-action="import" class="px-3 py-2.5 rounded-xl bg-surface border border-line text-xs font-bold hover:border-brand transition cursor-pointer" title="Restaurar lista desde una copia de seguridad">Importar</button>
-      <input id="importFile" type="file" accept="application/json,.json" class="hidden">
-      <button id="themeToggleBtn" data-action="toggle-theme" aria-label="Cambiar tema" class="px-4 py-2.5 rounded-xl bg-surface border border-line text-xs font-bold hover:border-brand transition cursor-pointer flex items-center gap-2">
-        <span id="themeIcon">☀️</span> <span id="themeText">Modo Claro</span>
+      <div id="authArea" class="flex items-center gap-2">
+        <button id="googleSignInBtn" type="button"
+          class="group flex items-center gap-2 pl-2.5 pr-3 py-2 rounded-xl bg-surface border border-line text-xs font-bold hover:border-brand hover:shadow-[0_0_20px_-8px_rgba(255,100,0,.6)] active:scale-95 transition cursor-pointer">
+          <svg class="w-4 h-4 shrink-0" viewBox="0 0 48 48" aria-hidden="true">
+            <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.9 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.5 6.5 29.5 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.3-.4-3.5z"/>
+            <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.5 6.5 29.5 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/>
+            <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.3 0-9.7-3.1-11.3-7.6l-6.5 5C9.5 39.6 16.2 44 24 44z"/>
+            <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4.1 5.5l6.2 5.2C39.9 36.5 44 31 44 24c0-1.3-.1-2.3-.4-3.5z"/>
+          </svg>
+          <span class="hidden sm:inline">Acceder con Google</span><span class="sm:hidden">Acceder</span>
+        </button>
+
+        <div id="userChip" class="hidden relative">
+          <button id="userMenuBtn" type="button" aria-haspopup="true" aria-expanded="false"
+            class="flex items-center gap-2 pl-1 pr-2 py-1 rounded-xl bg-surface border border-line hover:border-brand transition cursor-pointer">
+            <img id="userAvatar" class="w-7 h-7 rounded-full ring-2 ring-brand/70 object-cover bg-zinc-800" alt="" referrerpolicy="no-referrer">
+            <span id="userName" class="hidden md:inline text-xs font-bold max-w-[120px] truncate"></span>
+            <span class="text-[9px] text-zinc-400">▼</span>
+          </button>
+          <div id="userMenu" class="hidden absolute right-0 top-[calc(100%+8px)] w-64 max-w-[calc(100vw-2rem)] bg-surface border border-line rounded-2xl shadow-2xl z-50 overflow-hidden">
+            <div class="px-4 py-3 border-b border-line bg-gradient-to-br from-brand/10 to-transparent">
+              <p id="userMenuName" class="text-sm font-bold truncate"></p>
+              <p id="userMenuEmail" class="text-[11px] text-zinc-400 truncate"></p>
+            </div>
+            <div class="px-4 py-3 border-b border-line">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-zinc-400">Tu nube · Google Drive</span>
+                <span id="syncStatusMenu" class="flex items-center gap-1.5 text-[11px] font-semibold"></span>
+              </div>
+              <p id="syncDetail" class="text-[11px] text-zinc-500 mt-1"></p>
+              <button id="syncNowBtn" type="button" class="mt-2 w-full py-1.5 rounded-lg bg-zinc-800 text-[11px] font-bold hover:bg-zinc-700 transition cursor-pointer">Sincronizar ahora</button>
+            </div>
+            <button id="googleSettingsBtn" type="button" class="w-full text-left px-4 py-2.5 text-xs font-semibold hover:bg-zinc-800 transition cursor-pointer flex items-center gap-2">
+              <span>⚙️</span> Configurar cuenta de Google
+            </button>
+            <button id="signOutBtn" type="button" class="w-full text-left px-4 py-2.5 text-xs font-semibold text-red-400 hover:bg-zinc-800 transition cursor-pointer flex items-center gap-2 border-t border-line">
+              <span>⏻</span> Cerrar sesión
+            </button>
+          </div>
+        </div>
+
+        <span id="syncPill" class="hidden items-center gap-1.5 px-2.5 py-1.5 rounded-full border text-[10px] font-bold cursor-default select-none" title="Estado de sincronización">
+          <span id="syncDot" class="w-1.5 h-1.5 rounded-full"></span><span id="syncPillText"></span>
+        </span>
+      </div>
+
+      <button id="themeToggleBtn" data-action="toggle-theme" aria-label="Cambiar tema" class="px-3 py-2 rounded-xl bg-surface border border-line text-xs font-bold hover:border-brand transition cursor-pointer flex items-center gap-2">
+        <span id="themeIcon">☀️</span> <span id="themeText" class="hidden sm:inline">Modo Claro</span>
       </button>
     </div>
   </header>
 
-  <!-- BUSCADOR Y BOTÓN DE CATEGORÍAS -->
-  <div class="relative mb-4 flex gap-2">
-    <input id="searchInput" type="search" autocomplete="off" placeholder="Buscar animé o manga en AniList…"
-      class="flex-1 min-w-0 bg-surface border border-line rounded-xl px-4 py-3 text-base placeholder:text-zinc-500 focus:outline-none focus:border-brand">
-    <button id="categoryMenuBtn" data-action="toggle-categories" class="px-4 py-3 bg-surface border border-line rounded-xl hover:border-brand flex items-center gap-2 font-semibold text-sm cursor-pointer shrink-0">
+  <!-- BUSCADOR Y FILTROS -->
+  <div class="relative mb-4 flex flex-wrap gap-2">
+    <input id="searchInput" type="search" autocomplete="off" placeholder="Buscar animé o manga en AnimeList…"
+      class="flex-1 min-w-[200px] bg-surface border border-line rounded-xl px-4 py-2.5 text-sm placeholder:text-zinc-500 focus:outline-none focus:border-brand">
+    
+    <div class="flex gap-1 bg-surface border border-line rounded-xl p-1 text-xs font-semibold">
+      <button data-type-filter="ALL" class="type-filter-btn px-2.5 py-1.5 rounded-lg bg-brand text-black font-bold">Todos</button>
+      <button data-type-filter="ANIME" class="type-filter-btn px-2.5 py-1.5 rounded-lg text-zinc-300 hover:text-white">Anime</button>
+      <button data-type-filter="MANGA" class="type-filter-btn px-2.5 py-1.5 rounded-lg text-zinc-300 hover:text-white">Manga</button>
+    </div>
+
+    <select id="formatFilterSelect" aria-label="Filtrar por formato" class="bg-surface border border-line rounded-xl px-3 py-2.5 text-xs font-semibold text-zinc-300 focus:outline-none focus:border-brand cursor-pointer"></select>
+
+    <button id="categoryMenuBtn" data-action="toggle-categories" class="px-3 py-2.5 bg-surface border border-line rounded-xl hover:border-brand flex items-center gap-1.5 font-semibold text-xs cursor-pointer shrink-0">
       <span>Categorías</span>
-      <span class="text-xs">▼</span>
+      <span class="text-[10px]">▼</span>
     </button>
-    <button id="clearSearchBtn" data-action="clear-search" class="hidden px-3 py-2 text-sm text-brand font-semibold cursor-pointer shrink-0">Limpiar</button>
+    <button id="clearSearchBtn" data-action="clear-search" class="hidden px-2.5 py-2 text-xs text-brand font-semibold cursor-pointer shrink-0">Limpiar</button>
   </div>
 
-  <!-- MENÚ DESPLEGABLE DE CATEGORÍAS (TEMAS) -->
-  <div id="categoriesDropdown" class="hidden mb-4 bg-surface border border-line rounded-xl p-5 shadow-2xl z-30 relative">
-    <div class="flex justify-between items-center mb-4">
+  <!-- MENÚ DESPLEGABLE DE CATEGORÍAS -->
+  <div id="categoriesDropdown" class="hidden mb-4 bg-surface border border-line rounded-xl p-4 shadow-2xl z-30 relative">
+    <div class="flex justify-between items-center mb-3">
       <h3 class="text-xs font-bold tracking-wider text-zinc-400 uppercase">Temas / Categorías</h3>
       <span id="selectedCategoryBadge" class="text-xs text-brand font-semibold">Seleccionado: Todos</span>
     </div>
-    <div id="categoriesGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 text-sm"></div>
+    <div id="categoriesGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 text-xs"></div>
   </div>
 
   <!-- VISTA CATÁLOGO -->
   <div id="catalogView">
-    <!-- BARRA DE ORDENAMIENTO PERMANENTE -->
-    <div class="flex gap-2 overflow-x-auto no-scrollbar mb-5" id="sortBar">
+    <div class="flex gap-2 overflow-x-auto no-scrollbar mb-4" id="sortBar">
       <button data-sort="POPULARITY_DESC" class="sort-btn shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border bg-brand border-brand text-black cursor-pointer">🔥 Más populares</button>
       <button data-sort="TITLE_ENGLISH" class="sort-btn shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border bg-surface border-line text-zinc-300 cursor-pointer">🔤 A-Z</button>
       <button data-sort="TRENDING_DESC" class="sort-btn shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border bg-surface border-line text-zinc-300 cursor-pointer">👁️ Más vistos</button>
@@ -115,28 +205,35 @@
       <button data-sort="HIDDEN_GEMS" class="sort-btn shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border bg-surface border-line text-zinc-300 cursor-pointer">💎 Mejores valorados con pocas reseñas</button>
     </div>
 
-    <!-- RESULTADOS / CATÁLOGO -->
     <section id="searchPanel" class="mb-8">
       <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
-        <h2 id="searchTitle" class="font-semibold text-lg">Catálogo General (Anime & Manga)</h2>
+        <h2 id="searchTitle" class="font-semibold text-base sm:text-lg">Catálogo General (Anime & Manga)</h2>
       </div>
-
-      <!-- PAGINACIÓN SUPERIOR -->
-      <div id="paginationTopContainer" class="flex justify-center items-center gap-2 mb-4 flex-wrap"></div>
-
-      <div id="searchResults" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3"></div>
-
-      <!-- PAGINACIÓN INFERIOR -->
-      <div id="paginationContainer" class="flex justify-center items-center gap-2 mt-6 flex-wrap"></div>
+      <div id="paginationTopContainer" class="flex justify-center items-center gap-1.5 mb-3 flex-wrap text-xs"></div>
+      <div id="searchResults" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5"></div>
+      <div id="paginationContainer" class="flex justify-center items-center gap-1.5 mt-5 flex-wrap text-xs"></div>
     </section>
   </div>
 
-  <!-- VISTA INDEPENDIENTE DE MI LISTA -->
+  <!-- VISTA COLECCIÓN -->
   <section id="libraryView" class="hidden">
-    <div class="flex items-center justify-between gap-3 mb-4">
-      <h2 class="font-bold text-xl">Mi Lista Personal</h2>
-      <button data-action="toggle-library-view" class="px-4 py-2 rounded-lg bg-surface border border-line text-sm font-semibold hover:border-brand cursor-pointer shrink-0">← Volver al catálogo</button>
+    <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+      <h2 class="font-bold text-lg sm:text-xl shrink-0">Mi Colección</h2>
+      <button data-action="toggle-library-view" class="px-3 sm:px-4 py-2 rounded-lg bg-surface border border-line text-xs sm:text-sm font-semibold hover:border-brand cursor-pointer shrink-0">← Volver al catálogo</button>
     </div>
+
+    <!-- RESULTADOS DE LA BARRA SUPERIOR: TODO EL CATÁLOGO DE ANILIST -->
+    <section id="librarySearchPanel" class="hidden mb-6 rounded-2xl border border-brand/30 bg-gradient-to-b from-brand/10 via-surface to-surface p-3 sm:p-4 shadow-[0_0_40px_-18px_rgba(255,100,0,.55)]">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="w-1.5 h-5 rounded-full bg-brand shrink-0"></span>
+          <h3 id="librarySearchTitle" class="font-bold text-base sm:text-lg truncate">Resultados en AniList</h3>
+        </div>
+        <span id="librarySearchCount" class="text-[11px] font-semibold text-brand bg-brand/10 border border-brand/25 rounded-full px-2.5 py-1 shrink-0"></span>
+      </div>
+      <p class="text-[11px] text-zinc-400 mb-3">Búsqueda en todo el catálogo (anime y manga), sin filtros de colección.</p>
+      <div id="librarySearchResults" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3"></div>
+    </section>
 
     <!-- SELECTOR PRINCIPAL: ANIME / MANGA -->
     <div class="flex gap-3 mb-4 border-b border-line pb-3">
@@ -148,48 +245,42 @@
       </button>
     </div>
 
-    <!-- COLECCIÓN PERSONAL (PRIMERO) -->
     <div class="flex items-center justify-between gap-3 mb-3">
       <h3 id="collectionTitle" class="font-bold text-lg">Colección de Anime</h3>
       <span id="libraryCount" class="text-xs font-semibold text-zinc-400 bg-surface border border-line rounded-full px-3 py-1 shrink-0"></span>
     </div>
 
-    <!-- PESTAÑAS DE ESTADO -->
-    <nav id="tabs" class="flex gap-2 overflow-x-auto no-scrollbar mb-3" aria-label="Categorías de lista"></nav>
-
-    <!-- ORDEN DE MI LISTA -->
-    <div class="flex items-center gap-2 mb-4">
-      <span class="text-[10px] font-bold tracking-wider text-zinc-500 uppercase shrink-0">Orden</span>
-      <div id="librarySortBar" class="flex gap-2 overflow-x-auto no-scrollbar" role="group" aria-label="Ordenar Mi Lista">
-        <button data-lib-sort="recent" class="lib-sort-btn shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border bg-brand border-brand text-black cursor-pointer" aria-pressed="true">🕒 Recientes</button>
-        <button data-lib-sort="az" class="lib-sort-btn shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border bg-surface border-line text-zinc-300 cursor-pointer" aria-pressed="false">🔤 A-Z</button>
+    <!-- PESTAÑAS DE ESTADO Y ORDEN -->
+    <div class="flex flex-wrap items-center gap-2 mb-4">
+      <nav id="tabs" class="flex gap-1.5 overflow-x-auto no-scrollbar text-xs" aria-label="Categorías de colección"></nav>
+      <div class="flex items-center gap-1.5 ml-auto">
+        <span class="text-[10px] font-bold tracking-wider text-zinc-500 uppercase">Orden</span>
+        <div id="librarySortBar" class="flex gap-1.5" role="group">
+          <button data-lib-sort="recent" class="lib-sort-btn shrink-0 px-2.5 py-1 rounded-full text-xs font-semibold border bg-brand border-brand text-black cursor-pointer" aria-pressed="true">🕒 Recientes</button>
+          <button data-lib-sort="az" class="lib-sort-btn shrink-0 px-2.5 py-1 rounded-full text-xs font-semibold border bg-surface border-line text-zinc-300 cursor-pointer" aria-pressed="false">🔤 A-Z</button>
+        </div>
       </div>
     </div>
 
     <section id="library" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3"></section>
     <p id="empty" class="hidden text-center text-zinc-500 py-16">Aquí no hay nada todavía.</p>
 
-    <!-- RESULTADOS DE BÚSQUEDA EN LA BASE DE DATOS (DEBAJO DE LA COLECCIÓN) -->
-    <section id="librarySearchPanel" class="hidden mt-8 rounded-2xl border border-brand/30 bg-gradient-to-b from-brand/10 via-surface to-surface p-3 sm:p-4 shadow-[0_0_40px_-18px_rgba(255,100,0,.55)]" aria-labelledby="librarySearchTitle">
-      <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
-        <div class="flex items-center gap-2 min-w-0">
-          <span class="w-1.5 h-5 rounded-full bg-brand shrink-0"></span>
-          <h3 id="librarySearchTitle" class="font-bold text-base sm:text-lg truncate">Resultados en AniList</h3>
-        </div>
-        <span id="librarySearchCount" class="text-[11px] font-semibold text-brand bg-brand/10 border border-brand/25 rounded-full px-2.5 py-1 shrink-0" aria-live="polite"></span>
+    <!-- BARRA DE BÚSQUEDA INTERNA: SOLO DENTRO DE LA COLECCIÓN -->
+    <div class="mt-8 pt-4 border-t border-line">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="text-xs font-bold text-zinc-400">🔍 Buscar dentro de mi colección</span>
       </div>
-      <div id="librarySearchResults" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3"></div>
-      <p class="text-[11px] text-zinc-500 mt-3">Búsqueda en la base de datos de AniList · máximo 20 resultados. Tu colección personal aparece arriba.</p>
-    </section>
+      <input id="collectionSearchInput" type="search" autocomplete="off" placeholder="Filtrar por nombre en tu colección..."
+        class="w-full bg-surface border border-line rounded-xl px-4 py-2.5 text-xs text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:border-brand">
+    </div>
   </section>
 </main>
 
-<!-- MODAL SELECCIÓN DE ESTADO Y FAVORITOS AL AGREGAR -->
+<!-- MODAL SELECCIÓN DE ESTADO Y FAVORITOS AL AGREGAR (CON CASILLA VERDE DE PROGRESO) -->
 <div id="addStatusModal" class="hidden fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="addModalTitle">
   <div class="bg-surface border border-line w-full max-w-sm rounded-2xl p-5 shadow-2xl max-h-[90vh] overflow-y-auto">
-    <h3 id="addModalTitle" class="font-bold text-base mb-1 truncate text-white">Agregar a Mi Lista</h3>
+    <h3 id="addModalTitle" class="font-bold text-base mb-1 truncate text-white">Agregar a la Colección</h3>
     
-    <!-- Opción Favorito Toggle -->
     <div class="mb-4 pt-2">
       <button id="addModalFavBtn" type="button" class="w-full py-2.5 px-4 rounded-xl border border-yellow-500/40 bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20 font-bold text-sm flex items-center justify-between cursor-pointer transition">
         <span><span id="addModalStarIcon" class="text-sm">☆</span> Añadir a Favoritos</span>
@@ -215,8 +306,69 @@
   </div>
 </div>
 
+<!-- MODAL ACCEDER CON GOOGLE -->
+<div id="googleModal" class="hidden fixed inset-0 z-[60] bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-2 sm:p-4" role="dialog" aria-modal="true" aria-labelledby="gModalTitle">
+  <div class="bg-surface border border-line w-full sm:max-w-md max-h-[92vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl shadow-2xl">
+    <div class="sticky top-0 z-10 bg-surface/95 backdrop-blur border-b border-line px-5 py-4 flex items-center justify-between gap-3">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <span class="w-9 h-9 rounded-xl bg-white flex items-center justify-center shrink-0 shadow-lg">
+          <svg class="w-5 h-5" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.9 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.5 6.5 29.5 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.3-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.5 6.5 29.5 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.3 0-9.7-3.1-11.3-7.6l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4.1 5.5l6.2 5.2C39.9 36.5 44 31 44 24c0-1.3-.1-2.3-.4-3.5z"/></svg>
+        </span>
+        <div class="min-w-0">
+          <h3 id="gModalTitle" class="font-bold text-base leading-tight truncate">Acceder con Google</h3>
+          <p class="text-[11px] text-zinc-400">Tu colección se guarda en tu Google Drive</p>
+        </div>
+      </div>
+      <button data-action="close-google-modal" aria-label="Cerrar" class="w-8 h-8 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold cursor-pointer shrink-0">✕</button>
+    </div>
+
+    <div class="p-5 flex flex-col gap-4">
+      <div id="gProtocolWarning" class="hidden rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3">
+        <p class="text-xs font-bold text-amber-400 flex items-center gap-1.5">⚠️ Abre la app desde http://localhost</p>
+        <p class="text-[11px] text-zinc-300 mt-1 leading-relaxed">Google no permite iniciar sesión con el archivo abierto como <code class="g-code">file://</code>. Sirve la carpeta y entra por HTTP:</p>
+        <div class="mt-2 flex items-center gap-2">
+          <code id="gServeCmd" class="flex-1 min-w-0 text-[11px] font-mono bg-black/40 border border-line rounded-lg px-3 py-2 truncate text-zinc-200">python -m http.server 8000</code>
+          <button data-action="copy-serve-cmd" class="px-3 py-2 rounded-lg bg-zinc-800 text-[11px] font-bold hover:bg-zinc-700 cursor-pointer shrink-0">Copiar</button>
+        </div>
+      </div>
+
+      <div id="gConnectedCard" class="hidden rounded-xl border border-green-500/35 bg-green-500/10 px-4 py-3">
+        <p class="text-xs font-bold text-green-400 flex items-center gap-1.5">✓ Google configurado</p>
+        <p class="text-[11px] text-zinc-300 mt-1">ID de cliente: <span id="gConnectedId" class="font-mono text-green-400 break-all"></span></p>
+        <div class="flex gap-2 mt-3">
+          <button data-action="g-reconfigure" class="flex-1 py-2 rounded-lg bg-zinc-800 text-[11px] font-bold hover:bg-zinc-700 cursor-pointer">Cambiar ID</button>
+          <button data-action="g-disconnect" class="flex-1 py-2 rounded-lg bg-zinc-800 text-[11px] font-bold text-red-400 hover:bg-zinc-700 cursor-pointer">Quitar</button>
+        </div>
+      </div>
+
+      <div id="gSetupSteps">
+        <p class="text-[12px] text-zinc-300 leading-relaxed">Para que el botón de Google funcione, Google pide un <strong>ID de cliente</strong> (es lo que usa cualquier web con «Acceder con Google»). Se crea una sola vez, gratis:</p>
+        <ol class="flex flex-col gap-2 text-[12px] text-zinc-300 leading-relaxed mt-3">
+          <li class="flex gap-2.5"><span class="g-step">1</span><span>Entra a <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener" class="text-brand font-semibold hover:underline">console.cloud.google.com</a>, crea un proyecto y habilita la <strong>Google Drive API</strong> en «APIs y servicios → Biblioteca».</span></li>
+          <li class="flex gap-2.5"><span class="g-step">2</span><span>En «Pantalla de consentimiento OAuth» elige <strong>Externo</strong> y añádete como usuario de prueba. Luego en «Credenciales → Crear credencial → ID de cliente OAuth» elige <strong>Aplicación web</strong> y agrega el origen <code class="g-code">http://localhost:8000</code>.</span></li>
+          <li class="flex gap-2.5"><span class="g-step">3</span><span>Copia el <strong>ID de cliente</strong> (termina en <code class="g-code">.apps.googleusercontent.com</code>) y pégalo aquí:</span></li>
+        </ol>
+      </div>
+
+      <div id="gConfigForm">
+        <input id="gClientIdInput" type="text" spellcheck="false" autocomplete="off"
+          placeholder="1234567890-abc...apps.googleusercontent.com"
+          class="w-full bg-black/40 border border-line rounded-xl px-3 py-2.5 text-[12px] font-mono text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:border-brand">
+        <p id="gConfigError" class="hidden mt-2 text-[11px] font-semibold text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2"></p>
+        <button id="gConnectBtn" data-action="g-connect" class="mt-3 w-full py-3 rounded-xl bg-brand text-black font-extrabold text-sm hover:bg-orange-500 active:scale-[.98] transition cursor-pointer shadow-lg">
+          Guardar y continuar
+        </button>
+      </div>
+
+      <p class="text-[10px] text-zinc-500 leading-relaxed border-t border-line pt-3">
+        🔒 Al acceder, Google te pedirá tu correo y permiso para guardar un archivo privado <code class="g-code">AnimeList.json</code> en <strong>tu propio Drive</strong>. La app solo puede ver ese archivo, nada más de tu cuenta. Sin internet, todo sigue guardándose en el equipo y se sube al volver.
+      </p>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST -->
-<div id="toast" class="hidden fixed left-1/2 -translate-x-1/2 bottom-24 z-50 bg-zinc-800 border border-line text-sm px-4 py-2 rounded-lg"></div>
+<div id="toast" class="hidden fixed left-1/2 -translate-x-1/2 bottom-24 z-[70] bg-zinc-800 border border-line text-sm px-4 py-2 rounded-lg shadow-2xl max-w-[calc(100vw-2rem)] text-center"></div>
 
 <script>
 (() => {
@@ -239,13 +391,19 @@ const MANGA_STATUSES = {
   done:    '✅ Leído',
 };
 
+const FORMAT_LABELS = { TV: 'Anime', MOVIE: 'Película', OVA: 'OVA', ONA: 'ONA', SPECIAL: 'Especial', MANGA: 'Manga', NOVEL: 'Novela', ONE_SHOT: 'One-shot' };
+
+const ANIME_FORMATS = [['ALL', '🌍 Todo'], ['TV', '📺 Series (TV)'], ['MOVIE', '🎬 Películas'], ['OVA', '💿 OVAs'], ['ONA', '🌐 ONAs'], ['SPECIAL', '⭐ Especiales']];
+const MANGA_FORMATS = [['ALL', '🌍 Todo'], ['MANGA', '📖 Manga'], ['NOVEL', '📚 Novelas'], ['ONE_SHOT', '🎯 One-shots']];
+const FORMAT_OPTIONS = { ANIME: ANIME_FORMATS, MANGA: MANGA_FORMATS, ALL: [...ANIME_FORMATS, ...MANGA_FORMATS.slice(1)] };
+
 const statusDictOf = (type) => type === 'MANGA' ? MANGA_STATUSES : ANIME_STATUSES;
 const inProgressStatusOf = (type) => type === 'MANGA' ? 'reading' : 'watching';
 
 const SORT_IDLE = 'sort-btn shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border bg-surface border-line text-zinc-300 cursor-pointer';
 const SORT_ACTIVE = 'sort-btn shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border bg-brand border-brand text-black cursor-pointer';
-const LIB_SORT_IDLE = 'lib-sort-btn shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border bg-surface border-line text-zinc-300 cursor-pointer';
-const LIB_SORT_ACTIVE = 'lib-sort-btn shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border bg-brand border-brand text-black cursor-pointer';
+const LIB_SORT_IDLE = 'lib-sort-btn shrink-0 px-2.5 py-1 rounded-full text-xs font-semibold border bg-surface border-line text-zinc-300 cursor-pointer';
+const LIB_SORT_ACTIVE = 'lib-sort-btn shrink-0 px-2.5 py-1 rounded-full text-xs font-semibold border bg-brand border-brand text-black cursor-pointer';
 
 const collator = new Intl.Collator('es', { sensitivity: 'base', numeric: true });
 
@@ -280,8 +438,14 @@ const STATUS_MAP_ES = {
 const $ = (sel) => document.querySelector(sel);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+const debounce = (fn, ms) => {
+  let t;
+  const wrapped = (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
+  wrapped.cancel = () => clearTimeout(t);
+  return wrapped;
+};
 const titleOf = (m) => m.title?.english || m.title?.romaji || m.title?.native || 'Sin título';
+const norm = (s) => String(s ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
 function toast(msg) {
   const el = $('#toast');
@@ -292,7 +456,8 @@ function toast(msg) {
 }
 
 const Store = {
-  data: { version: 1, items: {} },
+  data: { version: 1, items: {}, deleted: {} },
+  onChange: null,
   load() {
     try {
       const raw = localStorage.getItem(DB_KEY);
@@ -300,8 +465,8 @@ const Store = {
     } catch (e) { console.warn('BD local corrupta', e); }
   },
   sanitize(obj) {
-    const out = { version: 1, items: {} };
-    const src = obj && typeof obj.items === 'object' ? obj.items : {};
+    const out = { version: 1, items: {}, deleted: {} };
+    const src = obj && typeof obj.items === 'object' && obj.items ? obj.items : {};
     for (const a of Object.values(src)) {
       const id = Number(a?.id);
       if (!Number.isInteger(id) || id <= 0) continue;
@@ -313,9 +478,11 @@ const Store = {
       const rawStatus = mediaType === 'MANGA' && a.status === 'watching' ? 'reading' : a.status;
       const status = rawStatus in validStatuses ? rawStatus : 'later';
       if (status === 'done' && total) progress = total;
+      const addedAt = Number(a.addedAt) || Date.now();
       out.items[id] = {
         id,
         type: mediaType,
+        format: a.format || (mediaType === 'MANGA' ? 'MANGA' : 'TV'),
         title: String(a.title || 'Sin título').slice(0, 200),
         cover: typeof a.cover === 'string' && a.cover.startsWith('https://') ? a.cover : '',
         total, progress,
@@ -323,20 +490,36 @@ const Store = {
         tags: Array.isArray(a.tags) ? a.tags.filter(x => typeof x === 'string') : [],
         status,
         fav: !!a.fav,
-        addedAt: Number(a.addedAt) || Date.now(),
+        addedAt,
+        updatedAt: Number(a.updatedAt) || addedAt,
       };
     }
+    const del = obj && typeof obj.deleted === 'object' && obj.deleted ? obj.deleted : {};
+    for (const [id, ts] of Object.entries(del)) {
+      const n = Number(id), t = Number(ts);
+      if (Number.isInteger(n) && n > 0 && t > 0) out.deleted[n] = t;
+    }
     return out;
+  },
+  touch(a) { a.updatedAt = Date.now(); return a; },
+  remove(id) {
+    delete this.data.items[id];
+    this.data.deleted[id] = Date.now();
+    this.save();
   },
   save: debounce(function () {
     try { localStorage.setItem(DB_KEY, JSON.stringify(Store.data)); }
     catch (e) { toast('No se pudo guardar: almacenamiento lleno'); }
+    if (Store.onChange) Store.onChange();
   }, 250),
   get: (id) => Store.data.items[id],
   list: () => Object.values(Store.data.items),
 };
 
-const flush = () => { try { localStorage.setItem(DB_KEY, JSON.stringify(Store.data)); } catch {} };
+const flush = () => {
+  try { localStorage.setItem(DB_KEY, JSON.stringify(Store.data)); } catch {}
+  if (Store.onChange) Store.onChange();
+};
 document.addEventListener('visibilitychange', () => { if (document.hidden) flush(); });
 window.addEventListener('pagehide', flush);
 
@@ -346,6 +529,8 @@ let activeSort = 'POPULARITY_DESC';
 let currentPage = 1;
 const PER_PAGE = 20;
 let currentMediaType = 'ANIME';
+let activeTypeFilter = 'ALL';
+let activeFormatFilter = 'ALL';
 
 async function gql(query, variables, signal) {
   const res = await fetch(API_URL, {
@@ -361,22 +546,22 @@ async function gql(query, variables, signal) {
   return json.data;
 }
 
-const ANILIST_PAGINATED_QUERY = `query($q:String, $genre:String, $tag:String, $type:MediaType, $page:Int, $perPage:Int, $sort:[MediaSort]){
+const ANILIST_PAGINATED_QUERY = `query($q:String, $genre:String, $tag:String, $type:MediaType, $format:MediaFormat, $page:Int, $perPage:Int, $sort:[MediaSort]){
   Page(page:$page, perPage:$perPage){
     pageInfo{ total perPage currentPage lastPage hasNextPage }
-    media(search:$q, genre:$genre, tag:$tag, type:$type, isAdult:false, sort:$sort){
-      id type title{romaji english native} coverImage{large} episodes chapters volumes status seasonYear genres tags{name} averageScore popularity
+    media(search:$q, genre:$genre, tag:$tag, type:$type, format:$format, isAdult:false, sort:$sort){
+      id type format title{romaji english native} coverImage{large} episodes chapters volumes status seasonYear genres tags{name} averageScore popularity
     }
   }
 }`;
 
 const DETAIL_Q = `query($id:Int){Media(id:$id){
-  id type title{romaji english native} coverImage{large} bannerImage episodes chapters status seasonYear
-  description(asHtml:false) genres tags{name} format averageScore popularity
+  id type format title{romaji english native} coverImage{large} bannerImage episodes chapters status seasonYear
+  description(asHtml:false) genres tags{name} averageScore popularity
 }}`;
 
 let apiCtrl = null;
-async function fetchMediaPage({ q = null, genre = null, tag = null, type = null, page = 1, sort = ['POPULARITY_DESC'], perPage = PER_PAGE } = {}) {
+async function fetchMediaPage({ q = null, genre = null, tag = null, type = null, format = null, page = 1, sort = ['POPULARITY_DESC'], perPage = PER_PAGE } = {}) {
   apiCtrl?.abort();
   apiCtrl = new AbortController();
 
@@ -387,7 +572,8 @@ async function fetchMediaPage({ q = null, genre = null, tag = null, type = null,
   if (q) vars.q = q;
   if (genre) vars.genre = genre;
   if (tag) vars.tag = tag;
-  if (type) vars.type = type;
+  if (type && type !== 'ALL') vars.type = type;
+  if (format && format !== 'ALL') vars.format = format;
 
   const data = await gql(ANILIST_PAGINATED_QUERY, vars, apiCtrl.signal);
   const pageInfo = data.Page.pageInfo;
@@ -425,9 +611,25 @@ let pendingModalFav = false;
 function syncSearchUI() {
   const input = $('#searchInput');
   input.placeholder = showingLibrary
-    ? 'Buscar en la base de datos de AniList…'
-    : 'Buscar animé o manga en el catálogo de AniList…';
+    ? 'Buscar en todo el catálogo de AniList (anime y manga)…'
+    : 'Buscar animé, manga, película u OVA en AnimeList…';
   $('#clearSearchBtn').classList.toggle('hidden', !(input.value.trim() || activeCategory.label !== 'Todos'));
+}
+
+function renderFormatOptions() {
+  const select = $('#formatFilterSelect');
+  const options = FORMAT_OPTIONS[showingLibrary ? currentMediaType : activeTypeFilter] || FORMAT_OPTIONS.ALL;
+  if (!options.some(([value]) => value === activeFormatFilter)) activeFormatFilter = 'ALL';
+  select.innerHTML = options.map(([value, label]) => `<option value="${value}">${label}</option>`).join('');
+  select.value = activeFormatFilter;
+}
+
+function syncTypeFilterButtons() {
+  document.querySelectorAll('[data-type-filter]').forEach((b) => {
+    const active = b.dataset.typeFilter === activeTypeFilter;
+    b.className = `type-filter-btn px-2.5 py-1.5 rounded-lg cursor-pointer ${active ? 'bg-brand text-black font-bold' : 'text-zinc-300 hover:text-white'}`;
+    b.setAttribute('aria-pressed', String(active));
+  });
 }
 
 function hideLibrarySearch() {
@@ -457,7 +659,6 @@ async function runLibrarySearch() {
   const panel = $('#librarySearchPanel');
   const box = $('#librarySearchResults');
   const count = $('#librarySearchCount');
-  const typeLabel = currentMediaType === 'MANGA' ? 'manga' : 'anime';
 
   if (q.length < 2) {
     if (!q) { hideLibrarySearch(); return; }
@@ -465,22 +666,21 @@ async function runLibrarySearch() {
     panel.classList.remove('hidden');
     $('#librarySearchTitle').textContent = 'Resultados en AniList';
     count.textContent = '';
-    box.innerHTML = `<p class="col-span-full text-sm text-zinc-400 py-6 text-center">Escribe al menos 2 caracteres para buscar en la base de datos.</p>`;
+    box.innerHTML = `<p class="col-span-full text-sm text-zinc-400 py-6 text-center">Escribe al menos 2 caracteres para buscar en todo el catálogo.</p>`;
     return;
   }
 
   const token = ++librarySearchToken;
   panel.classList.remove('hidden');
-  $('#librarySearchTitle').textContent = `Resultados de ${typeLabel} para “${q}”`;
+  $('#librarySearchTitle').textContent = `Resultados para “${q}”`;
   count.textContent = 'Buscando…';
   box.innerHTML = searchSkeleton();
 
   try {
     const { media } = await fetchMediaPage({
       q,
-      genre: activeCategory.genre,
-      tag: activeCategory.tag,
-      type: currentMediaType,
+      type: 'ALL',
+      format: 'ALL',
       page: 1,
       sort: ['SEARCH_MATCH'],
       perPage: LIBRARY_SEARCH_MAX,
@@ -492,7 +692,7 @@ async function runLibrarySearch() {
       : 'Sin resultados';
     box.innerHTML = results.length
       ? results.map(resultCard).join('')
-      : `<p class="col-span-full text-sm text-zinc-400 py-8 text-center">No se encontró ningún ${typeLabel} para “${esc(q)}” en la base de datos.</p>`;
+      : `<p class="col-span-full text-sm text-zinc-400 py-8 text-center">No se encontró nada para “${esc(q)}” en el catálogo de AniList.</p>`;
   } catch (e) {
     if (token !== librarySearchToken || e.name === 'AbortError') return;
     count.textContent = 'Error';
@@ -503,28 +703,61 @@ async function runLibrarySearch() {
   }
 }
 
-function toggleLibraryView() {
-  showingLibrary = !showingLibrary;
+function applyViewState() {
   $('#catalogView').classList.toggle('hidden', showingLibrary);
   $('#libraryView').classList.toggle('hidden', !showingLibrary);
   const btn = $('#listViewBtn');
-  btn.textContent = showingLibrary ? 'Volver al catálogo' : 'Mi Lista';
+  btn.textContent = showingLibrary ? '← Catálogo' : 'Colección';
   btn.setAttribute('aria-pressed', String(showingLibrary));
-  if (showingLibrary) {
-    renderAll();
-    syncSearchUI();
-    runLibrarySearch();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  } else {
-    hideLibrarySearch();
-    syncSearchUI();
-    loadMainCatalog();
-  }
+  renderFormatOptions();
+  syncSearchUI();
 }
 
-// Modal para seleccionar estado al agregar
+function toggleLibraryView() {
+  showingLibrary = !showingLibrary;
+  applyViewState();
+  if (showingLibrary) {
+    renderAll();
+    runLibrarySearch();
+  } else {
+    hideLibrarySearch();
+    loadMainCatalog();
+  }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function goHome() {
+  runSearch.cancel();
+  closeAddModal();
+  closeDetail();
+  showingLibrary = false;
+  $('#searchInput').value = '';
+  $('#collectionSearchInput').value = '';
+  activeCategory = ALL_CATEGORIES[0];
+  activeTypeFilter = 'ALL';
+  activeFormatFilter = 'ALL';
+  activeSort = 'POPULARITY_DESC';
+  currentPage = 1;
+  currentTab = 'all';
+  document.querySelectorAll('.sort-btn').forEach((b) => { b.className = b.dataset.sort === activeSort ? SORT_ACTIVE : SORT_IDLE; });
+  $('#categoriesDropdown').classList.add('hidden');
+  hideLibrarySearch();
+  renderCategoryDropdown();
+  syncTypeFilterButtons();
+  applyViewState();
+  renderAll();
+  loadMainCatalog();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+$('#logoHomeBtn').addEventListener('click', goHome);
+$('#logoHomeBtn').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goHome(); }
+});
+
+// Modal para seleccionar estado al agregar (con casilla verde)
 function promptAddStatus(id) {
-  if (Store.get(id)) { toast('Ya está en tu lista'); return; }
+  if (Store.get(id)) { toast('Ya está en tu colección'); return; }
   const m = mediaCache.get(id);
   if (!m) { toast('No se pudo cargar la información. Abre el detalle y reintenta.'); return; }
   pendingItemToAdd = m;
@@ -625,11 +858,12 @@ function addAnimeWithStatus(m, initialStatus, isFav = false) {
   const totalCount = isManga ? (m.chapters || null) : (m.episodes || null);
   const validStatuses = statusDictOf(type);
   const status = initialStatus in validStatuses ? initialStatus : inProgressStatusOf(type);
-  const progress = status === 'done' && totalCount ? totalCount : 0;
+  const progress = status === 'done' ? (totalCount || 1) : 0;
 
   Store.data.items[m.id] = {
     id: m.id,
     type,
+    format: m.format || (isManga ? 'MANGA' : 'TV'),
     title: titleOf(m),
     cover: m.coverImage?.large || '',
     genres: Array.isArray(m.genres) ? m.genres : [],
@@ -639,17 +873,22 @@ function addAnimeWithStatus(m, initialStatus, isFav = false) {
     status,
     fav: isFav,
     addedAt: Date.now(),
+    updatedAt: Date.now(),
   };
+  delete Store.data.deleted[m.id];
   Store.save();
   if (currentMediaType !== type) {
     currentMediaType = type;
     currentTab = 'all';
+    activeFormatFilter = 'ALL';
     syncMediaTypeButtons();
+    renderFormatOptions();
+  } else if (activeFormatFilter !== 'ALL' && activeFormatFilter !== Store.data.items[m.id].format) {
+    activeFormatFilter = 'ALL';
+    renderFormatOptions();
   }
   renderAll();
   refreshCardControls(m.id);
-  const completed = status === 'done' && totalCount ? ` · ${totalCount}/${totalCount} ${isManga ? 'capítulos' : 'episodios'}` : '';
-  toast(`"${titleOf(m)}" agregado a tu ${isManga ? 'colección de manga' : 'colección de anime'}${completed}`);
 }
 
 function changeEpisode(id, delta) {
@@ -658,6 +897,7 @@ function changeEpisode(id, delta) {
   const max = a.total ?? Infinity;
   a.progress = Math.min(max, Math.max(0, a.progress + delta));
   checkProgressStatus(a);
+  Store.touch(a);
   Store.save();
   renderAll();
   refreshCardControls(id);
@@ -671,6 +911,7 @@ function setExactEpisode(id, val) {
   const max = a.total ?? Infinity;
   a.progress = Math.min(max, num);
   checkProgressStatus(a);
+  Store.touch(a);
   Store.save();
   renderAll();
   refreshCardControls(id);
@@ -679,6 +920,8 @@ function setExactEpisode(id, val) {
 function checkProgressStatus(a) {
   if (a.total && a.progress >= a.total && a.status !== 'done') {
     a.status = 'done'; toast('¡Completaste ' + a.title + '!');
+  } else if (a.status === 'done' && a.total && a.progress < a.total) {
+    a.status = inProgressStatusOf(a.type);
   } else if (a.status === 'later' && a.progress > 0) {
     a.status = inProgressStatusOf(a.type);
   }
@@ -693,58 +936,93 @@ function renderCategoryDropdown() {
   $('#selectedCategoryBadge').textContent = `Seleccionado: ${activeCategory.label}`;
 }
 
+function statusTabs() {
+  return { all: 'Todos', ...statusDictOf(currentMediaType), fav: '⭐ Favoritos' };
+}
+
+// Mismo conjunto base para contadores y tarjetas: evita que una pestaña muestre
+// un número distinto al de las tarjetas realmente visibles.
+function collectionItems() {
+  let items = Store.list().filter((a) => a.type === currentMediaType);
+  if (activeFormatFilter !== 'ALL') items = items.filter((a) => a.format === activeFormatFilter);
+  if (activeCategory.genre) items = items.filter((a) => (a.genres || []).includes(activeCategory.genre));
+  if (activeCategory.tag) items = items.filter((a) => (a.tags || []).includes(activeCategory.tag));
+  const q = norm($('#collectionSearchInput').value.trim());
+  if (q) items = items.filter((a) => norm(a.title).includes(q));
+  return items;
+}
+
 function renderTabs() {
-  const isManga = currentMediaType === 'MANGA';
-  const statusDict = isManga ? MANGA_STATUSES : ANIME_STATUSES;
-  const items = Store.list().filter(a => a.type === currentMediaType);
+  const tabsObj = statusTabs();
+  if (!(currentTab in tabsObj)) currentTab = 'all';
+  const items = collectionItems();
 
-  const tabsObj = { all: 'Todos', ...statusDict, fav: '⭐ Favoritos' };
-
-  const count = (k) => k === 'all' 
-    ? items.length 
-    : k === 'fav' 
-      ? items.filter((a) => a.fav).length 
+  const count = (k) => k === 'all'
+    ? items.length
+    : k === 'fav'
+      ? items.filter((a) => a.fav).length
       : items.filter((a) => a.status === k).length;
 
   $('#tabs').innerHTML = Object.entries(tabsObj).map(([k, label]) => `
-    <button data-action="tab" data-tab="${k}" class="shrink-0 px-3 py-2 rounded-full text-sm border cursor-pointer ${k === currentTab ? 'bg-brand border-brand text-black font-semibold' : 'bg-surface border-line text-zinc-300'}">
+    <button data-action="tab" data-tab="${k}" aria-pressed="${k === currentTab}" class="shrink-0 px-3 py-2 rounded-full text-sm border cursor-pointer ${k === currentTab ? 'bg-brand border-brand text-black font-semibold' : 'bg-surface border-line text-zinc-300 hover:border-brand'}">
       ${label} <span class="opacity-70">${count(k)}</span></button>`).join('');
+}
+
+function resultCard(m) {
+  const inList = Store.get(m.id);
+  const isManga = m.type === 'MANGA';
+  const formatLabel = FORMAT_LABELS[m.format] || (isManga ? 'Manga' : 'Anime');
+  const unitLabel = isManga ? (m.chapters ? m.chapters + ' caps' : 'caps ?') : (m.episodes ? m.episodes + ' eps' : 'eps ?');
+
+  return `<article class="card-in bg-surface border border-line rounded-xl overflow-hidden flex flex-col text-xs" data-id="${m.id}">
+    <div class="relative aspect-[3/4] bg-black">
+      <img src="${esc(m.coverImage?.large)}" alt="" loading="lazy" decoding="async" class="w-full h-full object-cover cursor-pointer" data-action="detail">
+      <span data-format="${esc(m.format || '')}" class="format-badge absolute top-1 left-1 bg-black/80 text-[9px] font-bold px-1.5 py-0.5 rounded border border-line">${formatLabel}</span>
+    </div>
+    <div class="p-2 flex flex-col gap-1 flex-1">
+      <h3 class="font-semibold line-clamp-2 leading-tight">${esc(titleOf(m))}</h3>
+      <p class="text-[10px] text-zinc-400 mb-1">${m.seasonYear || '—'} · ${unitLabel}</p>
+      <div class="card-action-container flex flex-col flex-1">
+        ${cardActionControlsHTML(m.id, inList, m)}
+      </div>
+    </div>
+  </article>`;
 }
 
 function libraryCard(a) {
   const pct = a.total ? Math.round((a.progress / a.total) * 100) : 0;
   const isManga = a.type === 'MANGA';
-  const statusDict = isManga ? MANGA_STATUSES : ANIME_STATUSES;
-  const unitName = isManga ? 'cap' : 'ep';
+  const formatLabel = FORMAT_LABELS[a.format] || (isManga ? 'Manga' : 'Anime');
+  const unitLabel = isManga ? (a.total ? a.total + ' caps' : 'caps ?') : (a.total ? a.total + ' eps' : 'eps ?');
 
-  return `<article class="bg-surface border border-line rounded-xl overflow-hidden flex flex-col" data-id="${a.id}">
-    <div class="relative">
-      <button data-action="detail" class="block w-full aspect-[2/3] bg-black cursor-pointer" aria-label="Ver detalle de ${esc(a.title)}">
-        <img src="${esc(a.cover)}" alt="" loading="lazy" decoding="async" class="w-full h-full object-cover">
-        <span class="absolute bottom-1 left-1 bg-black/80 text-[10px] ${isManga ? 'text-purple-300' : 'text-orange-400'} px-1.5 py-0.5 rounded border border-line font-bold">${isManga ? 'MANGA' : 'ANIME'}</span>
-      </button>
-      <button data-action="fav"
-        class="absolute top-1.5 left-1.5 w-9 h-9 rounded-full bg-black/55 backdrop-blur-sm border border-white/10 text-lg leading-none flex items-center justify-center cursor-pointer transition hover:bg-black/80 hover:border-white/25 active:scale-90 focus-visible:outline-2 focus-visible:outline-brand ${a.fav ? 'text-yellow-300' : 'text-white/85'}"
-        aria-pressed="${a.fav}" aria-label="${a.fav ? 'Quitar de favoritos' : 'Marcar como favorito'}" title="${a.fav ? 'Quitar de favoritos' : 'Marcar como favorito'}">${a.fav ? '⭐' : '☆'}</button>
-      <button data-action="remove"
-        class="absolute top-1.5 right-1.5 w-9 h-9 rounded-full bg-black/55 backdrop-blur-sm border border-white/10 text-white/85 flex items-center justify-center cursor-pointer transition hover:bg-red-500/85 hover:border-red-300/50 hover:text-white active:scale-90 focus-visible:outline-2 focus-visible:outline-red-400"
-        aria-label="Quitar de mi lista" title="Quitar de mi lista">
-        <svg viewBox="0 0 24 24" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
-      </button>
+  return `<article class="bg-surface border border-line rounded-xl overflow-hidden flex flex-col text-xs" data-id="${a.id}">
+    <div class="relative aspect-[3/4] bg-black">
+      <img src="${esc(a.cover)}" alt="" loading="lazy" decoding="async" class="w-full h-full object-cover cursor-pointer" data-action="detail">
+      <span data-format="${esc(a.format || '')}" class="format-badge absolute top-1 left-1 bg-black/80 text-[9px] font-bold px-1.5 py-0.5 rounded border border-line">${formatLabel}</span>
     </div>
-    <div class="p-2 flex flex-col gap-2 flex-1">
-      <h3 class="text-sm font-semibold leading-tight line-clamp-2">${esc(a.title)}</h3>
-      <div class="h-1.5 bg-zinc-800 rounded-full overflow-hidden"><div class="h-full bg-brand" style="width:${pct}%"></div></div>
-      <div class="flex items-center justify-between gap-1">
-        <button data-action="dec" class="w-8 h-8 rounded-lg bg-zinc-800 text-lg flex items-center justify-center shrink-0 cursor-pointer" aria-label="Restar ${unitName}">−</button>
-        <button data-action="set-ep" class="text-xs font-mono font-bold hover:text-brand px-1 py-1 rounded hover:bg-zinc-800 text-center truncate cursor-pointer" title="Clic para colocar número exacto">
+    <div class="p-2 flex flex-col gap-1 flex-1">
+      <h3 class="font-semibold line-clamp-2 leading-tight">${esc(a.title)}</h3>
+      <p class="text-[10px] text-zinc-400 mb-1">${unitLabel}</p>
+      <div class="h-1.5 bg-zinc-800 rounded-full overflow-hidden my-1"><div class="h-full bg-brand" style="width:${pct}%"></div></div>
+      <div class="flex items-center justify-between gap-1 mt-auto pt-1">
+        <button data-action="dec" class="w-6 h-6 rounded bg-zinc-800 font-bold cursor-pointer" aria-label="Restar uno">−</button>
+        <button data-action="set-ep" class="text-[11px] font-mono font-bold hover:text-brand px-1 py-0.5 rounded hover:bg-zinc-800 text-center truncate cursor-pointer" title="Número exacto">
           ${a.progress}${a.total ? ' / ' + a.total : ''}
         </button>
-        <button data-action="inc" class="w-8 h-8 rounded-lg bg-brand text-black text-lg font-bold flex items-center justify-center shrink-0 cursor-pointer" aria-label="Sumar ${unitName}">+</button>
+        <button data-action="inc" class="w-6 h-6 rounded bg-brand text-black font-bold cursor-pointer" aria-label="Sumar uno">+</button>
       </div>
-      <select data-action="status" class="mt-auto w-full bg-zinc-800 border border-line rounded-lg text-xs p-2 cursor-pointer focus:outline-none focus:border-brand" aria-label="Estado de ${esc(a.title)}">
-        ${Object.entries(statusDict).map(([k, l]) => `<option value="${k}" ${a.status === k ? 'selected' : ''}>${l}</option>`).join('')}
+      <select data-action="status" aria-label="Estado" class="mt-2 w-full bg-zinc-800 border border-line rounded text-[10px] p-1 cursor-pointer focus:outline-none focus:border-brand">
+        ${Object.entries(statusDictOf(a.type)).map(([k, l]) => `<option value="${k}" ${a.status === k ? 'selected' : ''}>${l}</option>`).join('')}
       </select>
+      <div class="flex items-center gap-1 mt-1.5">
+        <button data-action="fav" aria-pressed="${a.fav}" title="${a.fav ? 'Quitar de favoritos' : 'Añadir a favoritos'}"
+          class="px-2 py-1 rounded border text-[11px] font-bold cursor-pointer transition ${a.fav ? 'border-yellow-500 bg-yellow-500/20 text-yellow-400' : 'border-line bg-zinc-800 text-zinc-400 hover:text-yellow-400'}">
+          ${a.fav ? '⭐' : '☆'}
+        </button>
+        <span class="text-[10px] text-zinc-500 truncate">${esc(statusDictOf(a.type)[a.status] || '')}</span>
+        <button data-action="remove" title="Quitar de la colección" aria-label="Quitar de la colección"
+          class="ml-auto px-2 py-1 rounded border border-line bg-zinc-800 text-[11px] text-zinc-400 hover:text-red-400 hover:border-red-500/50 cursor-pointer transition">🗑</button>
+      </div>
     </div>
   </article>`;
 }
@@ -753,31 +1031,27 @@ function renderLibrary() {
   const isManga = currentMediaType === 'MANGA';
   $('#collectionTitle').textContent = isManga ? 'Colección de Manga' : 'Colección de Anime';
 
-  const allOfType = Store.list().filter(a => a.type === currentMediaType);
-  let items = allOfType;
-
-  items = librarySort === 'az'
-    ? items.slice().sort((x, y) => collator.compare(x.title, y.title))
-    : items.sort((x, y) => y.addedAt - x.addedAt);
-
-  if (activeCategory.genre) items = items.filter(a => (a.genres || []).includes(activeCategory.genre));
-  if (activeCategory.tag) items = items.filter(a => (a.tags || []).includes(activeCategory.tag));
-
+  let items = collectionItems();
   if (currentTab === 'fav') items = items.filter((a) => a.fav);
   else if (currentTab !== 'all') items = items.filter((a) => a.status === currentTab);
 
+  items = items.slice().sort(librarySort === 'az'
+    ? (x, y) => collator.compare(x.title, y.title)
+    : (x, y) => y.addedAt - x.addedAt);
+
   $('#library').innerHTML = items.map(libraryCard).join('');
-  const unitLabel = (n) => isManga ? (n === 1 ? 'manga' : 'mangas') : (n === 1 ? 'animé' : 'animés');
-  $('#libraryCount').textContent = items.length === allOfType.length
-    ? `${allOfType.length} ${unitLabel(allOfType.length)}`
-    : `${items.length} de ${allOfType.length} ${unitLabel(allOfType.length)}`;
+  const entityLabel = isManga
+    ? (items.length === 1 ? 'Manga' : 'Mangas')
+    : (items.length === 1 ? 'Anime' : 'Animes');
+  $('#libraryCount').textContent = `${items.length} ${entityLabel}`;
 
   const empty = $('#empty');
   empty.classList.toggle('hidden', items.length > 0);
   if (!items.length) {
-    empty.textContent = allOfType.length
-      ? `Ningún ${isManga ? 'manga' : 'animé'} de tu colección coincide con los filtros actuales.`
-      : `No tienes ${isManga ? 'mangas' : 'animés'} guardados. Usa el buscador y agrégalos con “+ Agregar”; los resultados de AniList aparecen debajo de tu colección.`;
+    const hasAny = Store.list().some((a) => a.type === currentMediaType);
+    empty.textContent = hasAny
+      ? `Ningún título coincide con los filtros activos (${entityLabel.toLowerCase()}).`
+      : `Tu colección de ${isManga ? 'manga' : 'anime'} está vacía. Busca arriba y pulsa “+ Agregar”.`;
   }
 }
 
@@ -812,35 +1086,20 @@ function cardActionControlsHTML(id, inList, m) {
       <select data-action="status" class="w-full bg-zinc-800 border border-line rounded text-[11px] p-1 cursor-pointer focus:outline-none focus:border-brand" aria-label="Estado">
         ${Object.entries(statusDict).map(([k, l]) => `<option value="${k}" ${inList.status === k ? 'selected' : ''}>${l}</option>`).join('')}
       </select>
-    </div>`;
-}
-
-function resultCard(m) {
-  const inList = Store.get(m.id);
-  const mainGenre = m.genres && m.genres.length ? m.genres[0] : (m.type === 'MANGA' ? 'Manga' : 'Animé');
-  const isManga = m.type === 'MANGA';
-  const unitLabel = isManga ? (m.chapters ? m.chapters + ' caps' : 'caps ?') : (m.episodes ? m.episodes + ' eps' : 'eps ?');
-
-  return `<article class="card-in bg-surface border border-line rounded-xl overflow-hidden flex flex-col" data-id="${m.id}">
-    <button data-action="detail" class="block aspect-[2/3] bg-black relative cursor-pointer" aria-label="Ver detalle">
-      <img src="${esc(m.coverImage?.large)}" alt="" loading="lazy" decoding="async" class="w-full h-full object-cover">
-      <span class="absolute bottom-1 left-1 bg-black/80 text-[10px] text-[#e4e4e7] px-1.5 py-0.5 rounded border border-line font-medium">${esc(mainGenre)}</span>
-      <span class="absolute top-1 left-1 bg-black/80 text-[10px] ${isManga ? 'text-purple-300' : 'text-orange-400'} font-bold px-1.5 py-0.5 rounded border border-line">${isManga ? 'MANGA' : 'ANIME'}</span>
-    </button>
-    <div class="p-2 flex flex-col gap-2 flex-1">
-      <h3 class="text-sm font-semibold leading-tight line-clamp-2">${esc(titleOf(m))}</h3>
-      <p class="text-xs text-zinc-400">${m.seasonYear || '—'} · ${unitLabel}</p>
-      <div class="card-action-container flex flex-col flex-1">
-        ${cardActionControlsHTML(m.id, inList, m)}
+      <div class="flex items-center gap-1">
+        <button data-action="fav" aria-pressed="${inList.fav}" title="${inList.fav ? 'Quitar de favoritos' : 'Añadir a favoritos'}"
+          class="px-2 py-0.5 rounded border text-[11px] font-bold cursor-pointer transition ${inList.fav ? 'border-yellow-500 bg-yellow-500/20 text-yellow-400' : 'border-line bg-zinc-800 text-zinc-400 hover:text-yellow-400'}">${inList.fav ? '⭐' : '☆'}</button>
+        <span class="text-[10px] text-brand font-semibold truncate">En tu colección</span>
+        <button data-action="remove" title="Quitar de la colección" aria-label="Quitar de la colección"
+          class="ml-auto px-2 py-0.5 rounded border border-line bg-zinc-800 text-[11px] text-zinc-400 hover:text-red-400 hover:border-red-500/50 cursor-pointer transition">🗑</button>
       </div>
-    </div></article>`;
+    </div>`;
 }
 
 function renderPaginationControls(pageInfo) {
   if (!pageInfo || pageInfo.lastPage <= 1) return '';
-
   const current = pageInfo.currentPage;
-  const last = pageInfo.lastPage; // Paginación dinámica real adaptable al total
+  const last = pageInfo.lastPage;
   let html = '';
 
   if (current > 1) {
@@ -882,28 +1141,28 @@ async function loadMainCatalog() {
   const box = $('#searchResults');
   const q = $('#searchInput').value.trim();
 
-  let titleText = 'Catálogo General (Anime & Manga)';
-  if (q.length > 0) {
-    titleText = `Resultados para "${q}"`;
-    $('#clearSearchBtn').classList.remove('hidden');
-  } else if (activeCategory.label !== 'Todos') {
-    titleText = `Categoría: ${activeCategory.label}`;
-    $('#clearSearchBtn').classList.remove('hidden');
-  } else {
-    $('#clearSearchBtn').classList.add('hidden');
-  }
+  const searching = q.length >= 2;
+  const typeLabel = activeTypeFilter === 'MANGA' ? 'Manga' : activeTypeFilter === 'ANIME' ? 'Anime' : 'Anime & Manga';
+  let titleText = `Catálogo General (${typeLabel})`;
+  if (searching) titleText = `Resultados para "${q}"`;
+  else if (activeCategory.label !== 'Todos') titleText = `Categoría: ${activeCategory.label}`;
+  if (activeFormatFilter !== 'ALL') titleText += ` · ${FORMAT_LABELS[activeFormatFilter] || activeFormatFilter}`;
   if (activeSort === 'TITLE_ENGLISH') titleText += ' · A-Z';
+  if (activeSort === 'HIDDEN_GEMS') titleText += ' · Joyas ocultas';
 
   $('#searchTitle').textContent = titleText;
+  syncSearchUI();
   box.innerHTML = '<p class="col-span-full text-zinc-400 py-4 text-center">Cargando catálogo desde AniList…</p>';
   $('#paginationContainer').innerHTML = '';
   $('#paginationTopContainer').innerHTML = '';
 
   try {
     const { media, pageInfo } = await fetchMediaPage({
-      q: q.length >= 2 ? q : null,
+      q: searching ? q : null,
       genre: activeCategory.genre,
       tag: activeCategory.tag,
+      type: activeTypeFilter,
+      format: activeFormatFilter,
       page: currentPage,
       sort: [activeSort]
     });
@@ -923,15 +1182,21 @@ function performSearch() {
 }
 
 const runSearch = debounce(performSearch, 400);
-
 $('#searchInput').addEventListener('input', runSearch);
-$('#searchInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); performSearch(); } });
+$('#searchInput').addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  runSearch.cancel();
+  performSearch();
+});
 
 let detailToken = 0;
+let detailId = null;
 
 async function openDetail(id) {
   const modal = $('#modal'), body = $('#modalBody');
   const token = ++detailToken;
+  detailId = id;
   const alive = () => token === detailToken && !modal.classList.contains('hidden');
   modal.classList.remove('hidden');
   document.body.style.overflow = 'hidden';
@@ -948,7 +1213,7 @@ async function openDetail(id) {
         <img src="${esc(m.coverImage?.large)}" alt="" class="w-28 sm:w-36 rounded-lg object-cover self-start">
         <div class="min-w-0 flex-1">
           <div class="flex items-center gap-2">
-            <span class="text-xs font-bold px-2 py-0.5 rounded shrink-0 ${isManga ? 'bg-purple-900/80 text-purple-200' : 'bg-brand/20 text-brand'}">${isManga ? 'MANGA' : 'ANIME'}</span>
+            <span class="text-xs font-bold px-2 py-0.5 rounded shrink-0 ${isManga ? 'bg-purple-900/80' : 'bg-brand/20 text-brand'}" ${isManga ? 'style="color:#fff"' : ''}>${isManga ? 'MANGA' : 'ANIME'}</span>
             <h2 id="mTitle" class="text-xl font-bold leading-tight truncate">${esc(titleOf(m))}</h2>
           </div>
           <p class="text-sm text-yellow-400 font-semibold mt-1 flex items-center gap-1">${scoreVal}</p>
@@ -961,9 +1226,11 @@ async function openDetail(id) {
         <h4 class="text-xs font-bold text-zinc-400 uppercase mb-1">Sinopsis</h4>
         <p class="text-base text-zinc-200 leading-relaxed whitespace-pre-line">${loading ? 'Cargando sinopsis…' : esc(translatedDescription ?? (m.description ? 'Traduciendo sinopsis al español…' : 'Sin sinopsis disponible.'))}</p>
       </div>
-      <div class="flex gap-2 mt-6">
-        ${inList ? '' : `<button data-action="modal-add" data-id="${id}" class="flex-1 py-3 rounded-lg bg-brand text-black font-semibold cursor-pointer">Agregar a mi lista</button>`}
-        <button data-action="modal-close" class="flex-1 py-3 rounded-lg bg-zinc-800 cursor-pointer">Cerrar</button>
+      <div class="flex flex-wrap gap-2 mt-6">
+        ${inList
+          ? `<button data-action="remove" data-id="${id}" class="flex-1 min-w-[140px] py-3 rounded-lg bg-zinc-800 border border-line text-red-400 font-semibold hover:border-red-500/60 cursor-pointer">Quitar de la colección</button>`
+          : `<button data-action="modal-add" data-id="${id}" class="flex-1 min-w-[140px] py-3 rounded-lg bg-brand text-black font-semibold cursor-pointer">Agregar a la colección</button>`}
+        <button data-action="modal-close" class="flex-1 min-w-[100px] py-3 rounded-lg bg-zinc-800 cursor-pointer">Cerrar</button>
       </div>`;
   };
 
@@ -1017,42 +1284,23 @@ async function translateDescriptionToSpanish(description) {
 
 function closeDetail() {
   detailToken++;
+  detailId = null;
   $('#modal').classList.add('hidden');
   if ($('#addStatusModal').classList.contains('hidden')) document.body.style.overflow = '';
 }
+
+// Cierre de cuadros de diálogo al hacer clic fuera
 $('#modal').addEventListener('click', (e) => { if (e.target.id === 'modal') closeDetail(); });
 $('#addStatusModal').addEventListener('click', (e) => { if (e.target.id === 'addStatusModal') closeAddModal(); });
+$('#googleModal').addEventListener('click', (e) => { if (e.target.id === 'googleModal') closeGoogleModal(); });
+
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
-  if (!$('#addStatusModal').classList.contains('hidden')) closeAddModal();
+  if (!$('#googleModal').classList.contains('hidden')) closeGoogleModal();
+  else if (!$('#userMenu').classList.contains('hidden')) toggleUserMenu(false);
+  else if (!$('#addStatusModal').classList.contains('hidden')) closeAddModal();
   else closeDetail();
 });
-
-function exportDB() {
-  const items = Store.list();
-  if (!items.length) return toast('Tu lista está vacía: nada que exportar');
-  const blob = new Blob([JSON.stringify(Store.data, null, 2)], { type: 'application/json' });
-  const name = `animelist-backup-${new Date().toISOString().slice(0, 10)}.json`;
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob); a.download = name;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  toast(`Copia de seguridad exportada (${items.length})`);
-}
-
-async function importDB(file) {
-  try {
-    const clean = Store.sanitize(JSON.parse(await file.text()));
-    const n = Object.keys(clean.items).length;
-    if (!n) return toast('El archivo no contiene títulos válidos');
-    Object.assign(Store.data.items, clean.items);
-    flush();
-    renderAll();
-    syncMediaTypeButtons();
-    toast(`${n} títulos importados`);
-  } catch { toast('Archivo no válido: debe ser un JSON exportado por la app'); }
-}
-$('#importFile').addEventListener('change', (e) => { const f = e.target.files[0]; if (f) importDB(f); e.target.value = ''; });
 
 function toggleTheme() {
   const html = document.documentElement;
@@ -1113,9 +1361,12 @@ document.addEventListener('click', (e) => {
       if (currentMediaType === btn.dataset.type) break;
       currentMediaType = btn.dataset.type === 'MANGA' ? 'MANGA' : 'ANIME';
       currentTab = 'all';
+      activeTypeFilter = currentMediaType;
+      activeFormatFilter = 'ALL';
       syncMediaTypeButtons();
+      syncTypeFilterButtons();
+      renderFormatOptions();
       renderAll();
-      runLibrarySearch();
       break;
     }
     case 'select-category': {
@@ -1125,9 +1376,8 @@ document.addEventListener('click', (e) => {
       renderCategoryDropdown();
       $('#categoriesDropdown').classList.add('hidden');
       if (showingLibrary) {
-        renderLibrary();
+        renderAll();
         syncSearchUI();
-        runLibrarySearch();
       } else loadMainCatalog();
       break;
     }
@@ -1150,6 +1400,7 @@ document.addEventListener('click', (e) => {
       const a = Store.get(id);
       if (!a) break;
       a.fav = !a.fav;
+      Store.touch(a);
       Store.save(); renderAll(); refreshCardControls(id);
       toast(a.fav ? 'Añadido a favoritos' : 'Quitado de favoritos');
       break;
@@ -1157,9 +1408,12 @@ document.addEventListener('click', (e) => {
     case 'remove': {
       const a = Store.get(id);
       if (!a) break;
-      if (confirm('¿Quitar "' + a.title + '" de tu lista?')) {
-        delete Store.data.items[id];
-        Store.save(); renderAll(); refreshCardControls(id); toast('Eliminado de tu lista');
+      if (confirm('¿Quitar "' + a.title + '" de tu colección?')) {
+        Store.remove(id);
+        if (detailId === id) closeDetail();
+        renderAll();
+        refreshCardControls(id);
+        toast('Eliminado de tu colección');
       }
       break;
     }
@@ -1179,22 +1433,26 @@ document.addEventListener('click', (e) => {
     case 'detail': openDetail(id); break;
     case 'modal-close': closeDetail(); break;
     case 'retry-library-search': runLibrarySearch(); break;
-    case 'export': exportDB(); break;
-    case 'import': $('#importFile').click(); break;
     case 'clear-search':
+      runSearch.cancel();
       $('#searchInput').value = '';
       activeCategory = ALL_CATEGORIES[0];
       currentPage = 1;
       renderCategoryDropdown();
       if (showingLibrary) {
         hideLibrarySearch();
-        renderLibrary();
+        renderAll();
         syncSearchUI();
       } else {
         syncSearchUI();
         loadMainCatalog();
       }
       break;
+    case 'close-google-modal': closeGoogleModal(); break;
+    case 'g-connect': connectGoogleFromInput(); break;
+    case 'g-reconfigure': showGoogleForm(true); break;
+    case 'g-disconnect': disconnectGoogle(); break;
+    case 'copy-serve-cmd': copyText($('#gServeCmd').textContent, btn); break;
   }
 });
 
@@ -1205,16 +1463,442 @@ document.addEventListener('change', (e) => {
   if (!a) return;
   a.status = sel.value;
   if (a.status === 'done' && a.total) a.progress = a.total;
+  Store.touch(a);
   Store.save(); renderAll(); refreshCardControls(a.id);
 });
+
+// Filtros de Tipo y Formato
+document.querySelectorAll('[data-type-filter]').forEach(btn => {
+  btn.onclick = () => {
+    const type = btn.dataset.typeFilter;
+    if (type === activeTypeFilter) return;
+    activeTypeFilter = type;
+    activeFormatFilter = 'ALL';
+    if (type !== 'ALL') {
+      currentMediaType = type;
+      currentTab = 'all';
+    }
+    syncTypeFilterButtons();
+    syncMediaTypeButtons();
+    renderFormatOptions();
+    if (showingLibrary) {
+      renderAll();
+    } else {
+      currentPage = 1;
+      loadMainCatalog();
+    }
+  };
+});
+
+$('#formatFilterSelect').onchange = (e) => {
+  activeFormatFilter = e.target.value;
+  if (showingLibrary) {
+    renderAll();
+  } else {
+    currentPage = 1;
+    loadMainCatalog();
+  }
+};
+
+$('#collectionSearchInput').oninput = debounce(() => {
+  if (showingLibrary) renderAll();
+}, 200);
+
+// ===================== GOOGLE LOGIN (GIS) + NUBE EN GOOGLE DRIVE =====================
+const GoogleCloud = (() => {
+  const ID_KEY = 'animelist_google_client_id';
+  const TOKEN_KEY = 'animelist_google_token';
+  const FILE_NAME = 'AnimeList.json';
+  const SCOPES = 'openid email profile https://www.googleapis.com/auth/drive.file';
+  let tokenClient = null, tokenClientFor = null, gisPromise = null;
+  let fileId = null, pushTimer = null, applyingRemote = false, signingIn = false;
+  const subs = new Set();
+  const api = { user: null, state: 'unconfigured', detail: '' };
+
+  const emit = () => subs.forEach((fn) => fn(api));
+  const setState = (state, detail = '') => { api.state = state; api.detail = detail; emit(); };
+  const stamp = (x) => Number(x?.updatedAt) || Number(x?.addedAt) || 0;
+
+  const getClientId = () => { try { return localStorage.getItem(ID_KEY) || ''; } catch { return ''; } };
+
+  function parseClientId(text) {
+    const raw = String(text || '').trim();
+    if (!raw) throw new Error('Pega tu ID de cliente de Google (termina en .apps.googleusercontent.com).');
+    const m = raw.match(/[0-9]+-[a-z0-9]+\.apps\.googleusercontent\.com/i);
+    if (!m) throw new Error('Ese texto no parece un ID de cliente. Debe verse como 1234567890-abc…apps.googleusercontent.com');
+    return m[0];
+  }
+
+  const getToken = () => {
+    try {
+      const t = JSON.parse(sessionStorage.getItem(TOKEN_KEY) || 'null');
+      if (t?.access_token && Number(t.expires_at) > Date.now() + 60000) return t.access_token;
+    } catch {}
+    return null;
+  };
+  const storeToken = (resp) => {
+    try { sessionStorage.setItem(TOKEN_KEY, JSON.stringify({ access_token: resp.access_token, expires_at: Date.now() + (Number(resp.expires_in) || 3600) * 1000 })); } catch {}
+  };
+  const clearToken = () => { try { sessionStorage.removeItem(TOKEN_KEY); } catch {} };
+
+  function loadGIS() {
+    if (window.google?.accounts?.oauth2) return Promise.resolve();
+    if (gisPromise) return gisPromise;
+    gisPromise = new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://accounts.google.com/gsi/client'; s.async = true;
+      s.onload = res; s.onerror = () => { gisPromise = null; rej(new Error('No se pudo cargar Google. Revisa tu conexión.')); };
+      document.head.appendChild(s);
+    });
+    return gisPromise;
+  }
+
+  async function ensureTokenClient() {
+    const id = getClientId();
+    if (!id) throw new Error('Falta el ID de cliente de Google.');
+    await loadGIS();
+    if (tokenClient && tokenClientFor === id) return tokenClient;
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: id,
+      scope: SCOPES,
+      callback: onToken,
+      error_callback: onTokenError,
+    });
+    tokenClientFor = id;
+    return tokenClient;
+  }
+
+  function handleExpired() {
+    clearToken(); fileId = null; api.user = null;
+    setState('signed-out', 'Tu sesión de Google expiró. Vuelve a acceder para sincronizar.');
+    toast('Tu sesión de Google expiró. Pulsa «Acceder con Google» otra vez.');
+  }
+
+  async function driveFetch(url, opts = {}) {
+    const token = getToken();
+    if (!token) { handleExpired(); throw new Error('expired'); }
+    const res = await fetch(url, { ...opts, headers: { ...(opts.headers || {}), Authorization: `Bearer ${token}` } });
+    if (res.status === 401) { handleExpired(); throw new Error('expired'); }
+    return res;
+  }
+
+  async function driveFind() {
+    const q = encodeURIComponent(`name='${FILE_NAME}' and trashed=false`);
+    const res = await driveFetch(`https://www.googleapis.com/drive/v3/files?q=${q}&spaces=drive&fields=files(id,name)&pageSize=1`);
+    if (res.status === 403) throw new Error('Google Drive negó el acceso. Habilita la «Google Drive API» y completa la pantalla de consentimiento OAuth.');
+    if (!res.ok) throw new Error('No se pudo buscar en Drive (' + res.status + ').');
+    const j = await res.json();
+    return j.files?.[0]?.id || null;
+  }
+
+  async function driveRead(id) {
+    const res = await driveFetch(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`);
+    if (!res.ok) throw new Error('No se pudo leer tu colección de Drive (' + res.status + ').');
+    return res.json();
+  }
+
+  async function driveSave(id, data) {
+    const boundary = 'animelist' + Date.now();
+    const body =
+      `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n` + JSON.stringify({ name: FILE_NAME, mimeType: 'application/json' }) +
+      `\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n` + JSON.stringify(data) +
+      `\r\n--${boundary}--`;
+    const url = id
+      ? `https://www.googleapis.com/upload/drive/v3/files/${id}?uploadType=multipart&fields=id`
+      : `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id`;
+    const res = await driveFetch(url, { method: id ? 'PATCH' : 'POST', headers: { 'Content-Type': `multipart/related; boundary=${boundary}` }, body });
+    if (res.status === 403) throw new Error('Google Drive negó el guardado. Revisa los permisos de la API y el consentimiento OAuth.');
+    if (!res.ok) throw new Error('No se pudo guardar en Drive (' + res.status + ').');
+    const j = await res.json();
+    return j.id || id;
+  }
+
+  async function fetchUserInfo(token) {
+    const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) throw new Error('No se pudo leer tu perfil de Google.');
+    const p = await res.json();
+    return { uid: p.sub, name: p.name || p.email || 'Cuenta Google', email: p.email || '', picture: p.picture || '' };
+  }
+
+  function mergeData(local, remote) {
+    const out = { version: 1, items: {}, deleted: {} };
+    const li = local.items || {}, ri = remote.items || {}, ld = local.deleted || {}, rd = remote.deleted || {};
+    const ids = new Set([...Object.keys(li), ...Object.keys(ri), ...Object.keys(ld), ...Object.keys(rd)]);
+    for (const key of ids) {
+      const id = Number(key);
+      if (!Number.isInteger(id) || id <= 0) continue;
+      const a = li[key], b = ri[key];
+      const del = Math.max(Number(ld[key]) || 0, Number(rd[key]) || 0);
+      const item = a && b ? (stamp(a) >= stamp(b) ? a : b) : (a || b || null);
+      const s = item ? stamp(item) : 0;
+      if (del && del >= s) out.deleted[id] = del;
+      else if (item) { out.items[id] = item; if (del) out.deleted[id] = del; }
+      else if (del) out.deleted[id] = del;
+    }
+    return out;
+  }
+
+  function refreshVisibleCards() {
+    document.querySelectorAll('article[data-id]').forEach((el) => refreshCardControls(Number(el.dataset.id)));
+  }
+
+  async function pushNow() {
+    if (!api.user || applyingRemote || !getToken()) return;
+    clearTimeout(pushTimer);
+    setState('syncing', 'Guardando en tu Google Drive…');
+    try {
+      const payload = { version: 1, items: Store.data.items, deleted: Store.data.deleted, updatedAt: Date.now() };
+      fileId = await driveSave(fileId, payload);
+      setState('synced', 'Guardado en tu Drive · ' + Object.keys(Store.data.items).length + ' títulos');
+    } catch (e) {
+      if (e.message === 'expired') return;
+      setState(navigator.onLine ? 'error' : 'offline', e.message);
+    }
+  }
+
+  function queuePush() {
+    if (!api.user || applyingRemote || !getToken()) return;
+    clearTimeout(pushTimer);
+    setState('syncing', 'Cambios pendientes de subir…');
+    pushTimer = setTimeout(pushNow, 1500);
+  }
+
+  function applyRemote(remote) {
+    applyingRemote = true;
+    try {
+      const merged = Store.sanitize(mergeData(Store.data, remote));
+      const remoteNorm = Store.sanitize(remote);
+      Store.data = merged;
+      try { localStorage.setItem(DB_KEY, JSON.stringify(Store.data)); } catch {}
+      renderAll();
+      refreshVisibleCards();
+      if (JSON.stringify(merged) !== JSON.stringify(remoteNorm)) {
+        applyingRemote = false;
+        pushNow();
+        return;
+      }
+      setState('synced', 'Guardado en tu Drive · ' + Object.keys(merged.items).length + ' títulos');
+    } finally {
+      applyingRemote = false;
+    }
+  }
+
+  async function syncFromCloud() {
+    setState('syncing', 'Buscando tu colección en Google Drive…');
+    try {
+      fileId = await driveFind();
+      if (fileId) {
+        const remote = await driveRead(fileId);
+        applyRemote(remote && typeof remote === 'object' ? remote : { items: {} });
+      } else {
+        await pushNow();
+      }
+    } catch (e) {
+      if (e.message === 'expired') return;
+      setState(navigator.onLine ? 'error' : 'offline', e.message);
+    }
+  }
+
+  async function onToken(resp) {
+    signingIn = false;
+    $('#googleSignInBtn').disabled = false;
+    if (resp?.access_token) {
+      storeToken(resp);
+      try {
+        setState('syncing', 'Conectando con tu cuenta…');
+        api.user = await fetchUserInfo(resp.access_token);
+        emit();
+        toast('¡Hola, ' + api.user.name.split(' ')[0] + '! Tu colección se guarda en tu Drive.');
+        await syncFromCloud();
+      } catch (e) {
+        setState('error', e.message);
+        toast(e.message);
+      }
+    } else {
+      setState(api.user ? 'synced' : 'signed-out', '');
+    }
+  }
+
+  function onTokenError(err) {
+    signingIn = false;
+    $('#googleSignInBtn').disabled = false;
+    const type = err?.type || '';
+    if (type === 'popup_closed' || type === 'user_cancel') { setState(api.user ? 'synced' : 'signed-out', ''); return; }
+    if (type === 'popup_failed_to_open') { setState('error', 'El navegador bloqueó la ventana de Google. Permite ventanas emergentes.'); toast('Permite las ventanas emergentes para iniciar sesión con Google.'); return; }
+    setState('error', 'No se pudo iniciar sesión con Google. Revisa el ID de cliente y el origen autorizado.');
+  }
+
+  async function signIn() {
+    if (location.protocol === 'file:') { openGoogleModal(); toast('Para usar Google, abre la app desde http://localhost (mira el aviso).'); return; }
+    if (!getClientId()) { openGoogleModal(); return; }
+    if (signingIn) return;
+    signingIn = true;
+    $('#googleSignInBtn').disabled = true;
+    setState('syncing', 'Abriendo Google…');
+    try {
+      const client = await ensureTokenClient();
+      client.requestAccessToken({ prompt: 'select_account' });
+    } catch (e) {
+      signingIn = false;
+      $('#googleSignInBtn').disabled = false;
+      setState('error', e.message);
+      toast(e.message);
+    }
+  }
+
+  function signOut() {
+    clearTimeout(pushTimer);
+    const token = getToken();
+    clearToken(); fileId = null; api.user = null;
+    try { if (token && window.google?.accounts?.oauth2) google.accounts.oauth2.revoke(token, () => {}); } catch {}
+    setState(getClientId() ? 'signed-out' : 'unconfigured', '');
+    toggleUserMenu(false);
+    toast('Sesión cerrada. Tu colección sigue en este dispositivo y en tu Drive.');
+  }
+
+  function setClientId(id) { try { localStorage.setItem(ID_KEY, id); } catch {} tokenClient = null; tokenClientFor = null; }
+  function clearClientId() { try { localStorage.removeItem(ID_KEY); } catch {} tokenClient = null; tokenClientFor = null; }
+
+  window.addEventListener('online', () => { if (api.user && getToken()) { setState('syncing', 'Conexión recuperada…'); syncFromCloud(); } });
+  window.addEventListener('offline', () => { if (api.user) setState('offline', 'Sin conexión · los cambios se guardan en el equipo'); });
+
+  return {
+    api, signIn, signOut, pushNow, queuePush, getClientId, setClientId, clearClientId, parseClientId, ensureTokenClient,
+    subscribe: (fn) => { subs.add(fn); fn(api); },
+    init: async () => {
+      const id = getClientId();
+      if (!id) { setState('unconfigured', ''); return; }
+      const token = getToken();
+      if (token) {
+        try { api.user = await fetchUserInfo(token); emit(); await syncFromCloud(); }
+        catch { clearToken(); setState('signed-out', ''); }
+      } else {
+        setState('signed-out', 'Accede con Google para guardar tu colección en la nube.');
+        loadGIS().then(() => ensureTokenClient()).catch(() => {});
+      }
+    },
+  };
+})();
+
+function renderAuthUI(s) {
+  const u = s.user;
+  $('#googleSignInBtn').classList.toggle('hidden', !!u);
+  $('#userChip').classList.toggle('hidden', !u);
+  $('#syncPill').classList.toggle('is-visible', !!u);
+  if (!u) { $('#userMenu').classList.add('hidden'); return; }
+  const avatar = $('#userAvatar');
+  if (u.picture) { avatar.src = u.picture; avatar.classList.remove('hidden'); }
+  else avatar.classList.add('hidden');
+  $('#userName').textContent = u.name || u.email || 'Cuenta Google';
+  $('#userMenuName').textContent = u.name || 'Cuenta Google';
+  $('#userMenuEmail').textContent = u.email || '';
+  const meta = {
+    syncing: ['Sincronizando', '#FF6400'], synced: ['En tu Drive', '#22c55e'],
+    error: ['Error', '#ef4444'], offline: ['Sin conexión', '#71717a'],
+  }[s.state] || ['Conectado', '#22c55e'];
+  $('#syncPill').dataset.state = s.state;
+  $('#syncPillText').textContent = meta[0];
+  $('#syncStatusMenu').innerHTML = `<span class="w-1.5 h-1.5 rounded-full" style="background:${meta[1]};box-shadow:0 0 6px ${meta[1]}"></span><span style="color:${meta[1]}">${meta[0]}</span>`;
+  $('#syncDetail').textContent = s.detail || (s.state === 'synced' ? 'Tu colección está a salvo en tu Google Drive.' : '');
+}
+
+function toggleUserMenu(force) {
+  const menu = $('#userMenu');
+  const show = typeof force === 'boolean' ? force : menu.classList.contains('hidden');
+  menu.classList.toggle('hidden', !show);
+  $('#userMenuBtn').setAttribute('aria-expanded', String(show));
+}
+
+function openGoogleModal() {
+  toggleUserMenu(false);
+  const id = GoogleCloud.getClientId();
+  $('#gProtocolWarning').classList.toggle('hidden', location.protocol !== 'file:');
+  $('#gConnectedCard').classList.toggle('hidden', !id);
+  $('#gSetupSteps').classList.toggle('hidden', !!id);
+  $('#gConfigForm').classList.toggle('hidden', !!id);
+  if (id) $('#gConnectedId').textContent = id;
+  $('#gConfigError').classList.add('hidden');
+  $('#googleModal').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function showGoogleForm(prefill) {
+  $('#gConnectedCard').classList.add('hidden');
+  $('#gSetupSteps').classList.remove('hidden');
+  $('#gConfigForm').classList.remove('hidden');
+  $('#gConfigError').classList.add('hidden');
+  $('#gClientIdInput').value = prefill ? GoogleCloud.getClientId() : '';
+  $('#gClientIdInput').focus();
+}
+
+function closeGoogleModal() {
+  $('#googleModal').classList.add('hidden');
+  if ($('#modal').classList.contains('hidden') && $('#addStatusModal').classList.contains('hidden')) document.body.style.overflow = '';
+}
+
+async function connectGoogleFromInput() {
+  const errBox = $('#gConfigError');
+  const btn = $('#gConnectBtn');
+  errBox.classList.add('hidden');
+  let id;
+  try { id = GoogleCloud.parseClientId($('#gClientIdInput').value); }
+  catch (e) { errBox.textContent = e.message; errBox.classList.remove('hidden'); return; }
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin">◌</span> Guardando…';
+  try {
+    GoogleCloud.setClientId(id);
+    await GoogleCloud.ensureTokenClient();
+    closeGoogleModal();
+    toast('Google configurado. Pulsa «Acceder con Google» e ingresa con tu correo.');
+  } catch (e) {
+    errBox.textContent = e.message || 'No se pudo preparar Google.';
+    errBox.classList.remove('hidden');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Guardar y continuar';
+  }
+}
+
+function disconnectGoogle() {
+  if (!confirm('¿Quitar la cuenta de Google? Tu colección seguirá en este dispositivo y en tu Drive, pero dejará de sincronizarse hasta que vuelvas a acceder.')) return;
+  GoogleCloud.signOut();
+  GoogleCloud.clearClientId();
+  closeGoogleModal();
+  toast('Cuenta de Google quitada. Modo local activo.');
+}
+
+async function copyText(text, btn) {
+  const original = btn.textContent;
+  try {
+    if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
+    else {
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+    }
+    btn.textContent = '¡Copiado!';
+  } catch { btn.textContent = 'Error'; }
+  setTimeout(() => { btn.textContent = original; }, 1600);
+}
+
+$('#googleSignInBtn').addEventListener('click', () => GoogleCloud.signIn());
+$('#userMenuBtn').addEventListener('click', (e) => { e.stopPropagation(); toggleUserMenu(); });
+$('#signOutBtn').addEventListener('click', () => GoogleCloud.signOut());
+$('#syncNowBtn').addEventListener('click', () => { GoogleCloud.pushNow(); toggleUserMenu(false); });
+$('#googleSettingsBtn').addEventListener('click', openGoogleModal);
+document.addEventListener('click', (e) => { if (!e.target.closest('#userChip')) toggleUserMenu(false); });
+GoogleCloud.subscribe(renderAuthUI);
+Store.onChange = () => GoogleCloud.queuePush();
 
 initTheme();
 Store.load();
 renderCategoryDropdown();
+syncTypeFilterButtons();
 syncMediaTypeButtons();
+applyViewState();
 renderAll();
-syncSearchUI();
 loadMainCatalog();
+GoogleCloud.init();
 })();
 </script>
 </body>
