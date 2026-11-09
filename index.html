@@ -86,6 +86,9 @@
   #syncPill[data-state="error"] #syncDot { background: #ef4444; }
   #syncPill[data-state="offline"] { border-color: rgba(161,161,170,.4); background: rgba(161,161,170,.1); color: #a1a1aa; }
   #syncPill[data-state="offline"] #syncDot { background: #71717a; }
+  #syncPill[data-state="expired"] { border-color: rgba(245,158,11,.45); background: rgba(245,158,11,.1); color: #fbbf24; cursor: pointer; }
+  #syncPill[data-state="expired"] #syncDot { background: #f59e0b; }
+  html:not(.dark) #syncPill[data-state="expired"] { color: #a16207; }
   html:not(.dark) #syncPill[data-state="synced"] { color: #15803d; }
   html:not(.dark) #syncPill[data-state="syncing"] { color: #c2410c; }
   html:not(.dark) #syncPill[data-state="error"] { color: #b91c1c; }
@@ -208,7 +211,14 @@
     <section id="searchPanel" class="mb-8">
       <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
         <h2 id="searchTitle" class="font-semibold text-base sm:text-lg">Catálogo General (Anime & Manga)</h2>
-        <span id="searchCount" class="hidden text-[11px] font-semibold text-brand bg-brand/10 border border-brand/25 rounded-full px-2.5 py-1 shrink-0"></span>
+        <div class="flex flex-wrap items-center gap-2">
+          <div id="catalogLayoutBar" class="flex gap-1 bg-surface border border-line rounded-xl p-1 text-xs font-semibold" role="group" aria-label="Vista del catálogo">
+            <button type="button" data-action="set-library-layout" data-layout="grid" title="Cuadrícula de portadas">▦ Iconos</button>
+            <button type="button" data-action="set-library-layout" data-layout="list" title="Lista compacta">☰ Lista</button>
+            <button type="button" data-action="set-library-layout" data-layout="detail" title="Fichas detalladas">🔍 Detalle</button>
+          </div>
+          <span id="searchCount" class="hidden text-[11px] font-semibold text-brand bg-brand/10 border border-brand/25 rounded-full px-2.5 py-1 shrink-0"></span>
+        </div>
       </div>
       <div id="paginationTopContainer" class="flex justify-center items-center gap-1.5 mb-3 flex-wrap text-xs"></div>
       <div id="searchResults" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5"></div>
@@ -819,6 +829,8 @@ let librarySort = 'recent';
 const LIBRARY_LAYOUT_KEY = 'animelist_library_layout';
 const LIBRARY_LAYOUTS = ['grid', 'list', 'detail'];
 let libraryLayout = 'grid';
+let catalogSnapshot = null;
+let librarySearchSnapshot = null;
 let librarySearchToken = 0;
 let pendingItemToAdd = null;
 let pendingModalStatus = 'watching';
@@ -857,6 +869,7 @@ function syncTypeFilterButtons() {
 
 function hideLibrarySearch() {
   librarySearchToken++;
+  librarySearchSnapshot = null;
   $('#librarySearchPanel').classList.add('hidden');
   $('#librarySearchResults').innerHTML = '';
   $('#librarySearchCount').textContent = '';
@@ -865,6 +878,28 @@ function hideLibrarySearch() {
 const LIBRARY_SEARCH_MAX = 20;
 
 function searchSkeleton() {
+  if (libraryLayout === 'list') {
+    return Array.from({ length: 6 }, () => `
+      <div class="rounded-xl border border-line bg-surface animate-pulse p-2 flex gap-2.5" aria-hidden="true">
+        <div class="w-16 sm:w-20 rounded-lg bg-zinc-800 shrink-0" style="aspect-ratio:3/4"></div>
+        <div class="min-w-0 flex-1 flex flex-col gap-2 py-1">
+          <div class="h-3 rounded bg-zinc-800"></div>
+          <div class="h-3 w-2/3 rounded bg-zinc-800/70"></div>
+          <div class="h-8 rounded-lg bg-zinc-800/60 mt-auto"></div>
+        </div>
+      </div>`).join('');
+  }
+  if (libraryLayout === 'detail') {
+    return Array.from({ length: 4 }, () => `
+      <div class="rounded-xl border border-line bg-surface animate-pulse p-3 flex gap-3" aria-hidden="true">
+        <div class="w-20 sm:w-24 rounded-lg bg-zinc-800 shrink-0" style="aspect-ratio:3/4"></div>
+        <div class="min-w-0 flex-1 flex flex-col gap-2">
+          <div class="h-4 rounded bg-zinc-800"></div>
+          <div class="h-3 w-1/2 rounded bg-zinc-800/70"></div>
+          <div class="h-16 rounded-lg bg-zinc-800/60 mt-2"></div>
+        </div>
+      </div>`).join('');
+  }
   return Array.from({ length: 10 }, () => `
     <div class="rounded-xl overflow-hidden border border-line bg-surface animate-pulse" aria-hidden="true">
       <div class="aspect-[2/3] bg-zinc-800"></div>
@@ -903,7 +938,7 @@ async function runLibrarySearch() {
     panel.classList.remove('hidden');
     $('#librarySearchTitle').textContent = 'Resultados en AniList';
     count.textContent = '';
-    box.innerHTML = `<p class="col-span-full text-sm text-zinc-400 py-6 text-center">Escribe al menos 2 caracteres para buscar en el catálogo con tus filtros.</p>`;
+    setLibrarySearchSnapshot([], '<p class="col-span-full text-sm text-zinc-400 py-6 text-center">Escribe al menos 2 caracteres para buscar en el catálogo con tus filtros.</p>');
     return;
   }
 
@@ -911,6 +946,8 @@ async function runLibrarySearch() {
   panel.classList.remove('hidden');
   $('#librarySearchTitle').textContent = `Resultados para “${q}”`;
   count.textContent = 'Buscando…';
+  librarySearchSnapshot = null;
+  box.className = catalogLayoutClass('gap-3');
   box.innerHTML = searchSkeleton();
 
   try {
@@ -958,16 +995,14 @@ async function runLibrarySearch() {
         : visible.length < total
           ? `Mostrando ${visible.length} de ${total}`
           : `${total} ${total === 1 ? 'resultado' : 'resultados'}`;
-    box.innerHTML = results.length
-      ? results.map(resultCard).join('')
-      : `<p class="col-span-full text-sm text-zinc-400 py-8 text-center">No se encontró nada para “${esc(q)}” en el catálogo de AniList.</p>`;
+    setLibrarySearchSnapshot(visible, `<p class="col-span-full text-sm text-zinc-400 py-8 text-center">No se encontró nada para “${esc(q)}” en el catálogo de AniList.</p>`);
   } catch (e) {
     if (token !== librarySearchToken || e.name === 'AbortError') return;
     count.textContent = 'Error';
-    box.innerHTML = `<div class="col-span-full text-center py-8">
+    setLibrarySearchSnapshot([], `<div class="col-span-full w-full text-center py-8">
       <p class="text-sm text-red-400">${esc(e.message)}. Revisa tu conexión.</p>
       <button data-action="retry-library-search" class="mt-3 px-4 py-2 rounded-lg bg-surface border border-line text-sm font-semibold hover:border-brand cursor-pointer">Reintentar búsqueda</button>
-    </div>`;
+    </div>`);
   }
 }
 
@@ -1278,6 +1313,103 @@ function resultCard(m) {
   </article>`;
 }
 
+function resultFormatBadgeHTML(m, extra = '') {
+  const formatLabel = FORMAT_LABELS[m.format] || (m.type === 'MANGA' ? 'Manga' : 'Anime');
+  return `<span data-format="${esc(m.format || '')}" class="format-badge shrink-0 bg-black/80 text-[9px] font-bold px-1.5 py-0.5 rounded border border-line ${extra}">${formatLabel}</span>`;
+}
+
+function resultMetaLine(m) {
+  const isManga = m.type === 'MANGA';
+  const unitLabel = isManga ? (m.chapters ? m.chapters + ' caps' : 'caps ?') : (m.episodes ? m.episodes + ' eps' : 'eps ?');
+  return `${m.seasonYear || '—'} · ${unitLabel}`;
+}
+
+// Variantes del catálogo para las vistas Lista y Detalle. Reutilizan los
+// mismos controles que la cuadrícula para que agregar/editar siga funcionando.
+function resultCardList(m) {
+  const inList = Store.get(m.id);
+  return `<article class="card-in bg-surface border border-line rounded-xl p-2 flex gap-2.5 text-xs" data-id="${m.id}">
+    <img src="${esc(m.coverImage?.large)}" alt="" loading="lazy" decoding="async" class="w-16 sm:w-20 rounded-lg object-cover bg-black shrink-0 cursor-pointer" style="aspect-ratio:3/4" data-action="detail">
+    <div class="min-w-0 flex-1 flex flex-col gap-1">
+      <div class="flex items-start gap-2">
+        <h3 class="font-semibold leading-tight line-clamp-2 min-w-0 flex-1">${esc(titleOf(m))}</h3>
+        ${resultFormatBadgeHTML(m)}
+      </div>
+      <p class="text-[10px] text-zinc-400 truncate">${resultMetaLine(m)}</p>
+      <div class="card-action-container flex flex-col flex-1">
+        ${cardActionControlsHTML(m.id, inList, m)}
+      </div>
+    </div>
+  </article>`;
+}
+
+function resultCardDetail(m) {
+  const inList = Store.get(m.id);
+  const chips = (m.genres || []).slice(0, 3);
+  const score = m.averageScore ? `⭐ ${m.averageScore} / 100` : '';
+  return `<article class="card-in bg-surface border border-line rounded-xl p-3 text-xs" data-id="${m.id}">
+    <div class="flex gap-3">
+      <img src="${esc(m.coverImage?.large)}" alt="" loading="lazy" decoding="async" class="w-20 sm:w-24 rounded-lg object-cover bg-black shrink-0 cursor-pointer" style="aspect-ratio:3/4" data-action="detail">
+      <div class="min-w-0 flex-1">
+        <div class="flex items-start gap-2">
+          <h3 class="font-bold text-sm leading-tight line-clamp-2 min-w-0 flex-1">${esc(titleOf(m))}</h3>
+          ${resultFormatBadgeHTML(m)}
+        </div>
+        <p class="text-[10px] text-zinc-400 mt-1">${resultMetaLine(m)}${score ? ' · ' + score : ''}</p>
+        ${chips.length ? `<div class="flex flex-wrap gap-1 mt-1.5">${chips.map((c) => `<span class="text-[9px] px-1.5 py-0.5 rounded-full bg-zinc-800 border border-line text-zinc-300">${esc(c)}</span>`).join('')}</div>` : ''}
+        <div class="card-action-container mt-2">
+          ${cardActionControlsHTML(m.id, inList, m)}
+        </div>
+      </div>
+    </div>
+  </article>`;
+}
+
+function catalogLayoutClass(gap = 'gap-2.5') {
+  if (libraryLayout === 'list') return 'flex flex-col gap-2';
+  if (libraryLayout === 'detail') return `grid grid-cols-1 sm:grid-cols-2 ${gap}`;
+  return `grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 ${gap}`;
+}
+
+function resultCardForLayout(m) {
+  if (libraryLayout === 'list') return resultCardList(m);
+  if (libraryLayout === 'detail') return resultCardDetail(m);
+  return resultCard(m);
+}
+
+function applyCatalogLayout() {
+  $('#searchResults').className = catalogLayoutClass('gap-2.5');
+  $('#librarySearchResults').className = catalogLayoutClass('gap-3');
+}
+
+function setCatalogSnapshot(media, emptyHtml) {
+  catalogSnapshot = { media, emptyHtml };
+  renderCatalogSnapshot();
+}
+
+function renderCatalogSnapshot() {
+  if (!catalogSnapshot) return;
+  const box = $('#searchResults');
+  box.className = catalogLayoutClass('gap-2.5');
+  box.innerHTML = catalogSnapshot.media.length
+    ? catalogSnapshot.media.map(resultCardForLayout).join('')
+    : catalogSnapshot.emptyHtml;
+}
+
+function setLibrarySearchSnapshot(media, emptyHtml) {
+  librarySearchSnapshot = { media, emptyHtml };
+  renderLibrarySearchSnapshot();
+}
+
+function renderLibrarySearchSnapshot() {
+  if (!librarySearchSnapshot) return;
+  const box = $('#librarySearchResults');
+  box.className = catalogLayoutClass('gap-3');
+  box.innerHTML = librarySearchSnapshot.media.length
+    ? librarySearchSnapshot.media.map(resultCardForLayout).join('')
+    : librarySearchSnapshot.emptyHtml;
+}
+
 function libraryUnitLabel(a) {
   const unit = a.type === 'MANGA' ? 'caps' : 'eps';
   return a.total ? `${a.total} ${unit}` : `${unit} ?`;
@@ -1405,6 +1537,7 @@ function initLibraryLayout() {
     if (LIBRARY_LAYOUTS.includes(saved)) libraryLayout = saved;
   } catch {}
   syncLibraryLayoutButtons();
+  applyCatalogLayout();
 }
 
 function setLibraryLayout(next) {
@@ -1413,6 +1546,8 @@ function setLibraryLayout(next) {
   try { localStorage.setItem(LIBRARY_LAYOUT_KEY, next); } catch {}
   syncLibraryLayoutButtons();
   renderLibrary();
+  renderCatalogSnapshot();
+  renderLibrarySearchSnapshot();
 }
 
 function renderLibrary() {
@@ -1590,10 +1725,7 @@ function renderPartialSearchPage(list) {
   const info = localPageInfo(list.length, currentPage, PER_PAGE);
   currentPage = info.currentPage;
   const visible = list.slice((info.currentPage - 1) * PER_PAGE, info.currentPage * PER_PAGE);
-  const box = $('#searchResults');
-  box.innerHTML = visible.length
-    ? visible.map(resultCard).join('')
-    : '<p class="col-span-full text-zinc-400 py-4 text-center">No se encontraron resultados para este criterio.</p>';
+  setCatalogSnapshot(visible, '<p class="col-span-full w-full text-zinc-400 py-4 text-center">No se encontraron resultados para este criterio.</p>');
   renderPagination(info);
   setResultsCount(info.total ? `${info.total} ${info.total === 1 ? 'resultado' : 'resultados'}` : 'Sin resultados');
 }
@@ -1620,7 +1752,9 @@ async function loadMainCatalog() {
     return;
   }
 
-  box.innerHTML = '<p class="col-span-full text-zinc-400 py-4 text-center">Cargando catálogo desde AniList…</p>';
+  catalogSnapshot = null;
+  box.className = catalogLayoutClass('gap-2.5');
+  box.innerHTML = '<p class="col-span-full w-full text-zinc-400 py-4 text-center">Cargando catálogo desde AniList…</p>';
   $('#paginationContainer').innerHTML = '';
   $('#paginationTopContainer').innerHTML = '';
   setResultsCount('');
@@ -1669,7 +1803,7 @@ async function loadMainCatalog() {
       ? { ...pageInfo, currentPage, lastPage: Math.max(currentPage, pageInfo.lastPage - (offset - 1)) }
       : pageInfo;
 
-    box.innerHTML = media.length ? media.map(resultCard).join('') : '<p class="col-span-full text-zinc-400 py-4 text-center">No se encontraron resultados para este criterio.</p>';
+    setCatalogSnapshot(media, '<p class="col-span-full w-full text-zinc-400 py-4 text-center">No se encontraron resultados para este criterio.</p>');
     renderPagination(shownInfo);
     if (pageInfo.total > 0 && pageInfo.total < RESULTS_CAP) {
       setResultsCount(`${pageInfo.total} ${pageInfo.total === 1 ? 'título' : 'títulos'}`);
@@ -1677,7 +1811,9 @@ async function loadMainCatalog() {
       setResultsCount(`${media.length}+ títulos`);
     }
   } catch (e) {
-    if (e.name !== 'AbortError') box.innerHTML = `<p class="col-span-full text-red-400 py-4 text-center">${esc(e.message)}. Revisa tu conexión.</p>`;
+    if (e.name !== 'AbortError') {
+      setCatalogSnapshot([], `<p class="col-span-full w-full text-red-400 py-4 text-center">${esc(e.message)}. Revisa tu conexión.</p>`);
+    }
   }
 }
 
@@ -2031,10 +2167,12 @@ $('#collectionSearchInput').oninput = debounce(() => {
 const GoogleCloud = (() => {
   const ID_KEY = 'animelist_google_client_id';
   const TOKEN_KEY = 'animelist_google_token';
+  const USER_KEY = 'animelist_google_user';
   const FILE_NAME = 'AnimeList.json';
   const SCOPES = 'openid email profile https://www.googleapis.com/auth/drive.file';
   let tokenClient = null, tokenClientFor = null, gisPromise = null;
   let fileId = null, pushTimer = null, applyingRemote = false, signingIn = false;
+  let tokenWaiter = null, refreshTimer = null, retryArmed = false;
   const subs = new Set();
   const api = { user: null, state: 'unconfigured', detail: '' };
 
@@ -2052,17 +2190,29 @@ const GoogleCloud = (() => {
     return m[0];
   }
 
-  const getToken = () => {
+  // El token se guarda en localStorage (no en sessionStorage) para que sobreviva
+  // al cierre de la app. Si expira, se renueva en silencio con la sesión de
+  // Google del navegador, sin volver a pedir la cuenta.
+  const readToken = () => {
     try {
-      const t = JSON.parse(sessionStorage.getItem(TOKEN_KEY) || 'null');
-      if (t?.access_token && Number(t.expires_at) > Date.now() + 60000) return t.access_token;
-    } catch {}
-    return null;
+      const t = JSON.parse(localStorage.getItem(TOKEN_KEY) || 'null');
+      return t?.access_token ? t : null;
+    } catch { return null; }
+  };
+  const getToken = () => {
+    const t = readToken();
+    return t && Number(t.expires_at) > Date.now() + 60000 ? t.access_token : null;
   };
   const storeToken = (resp) => {
-    try { sessionStorage.setItem(TOKEN_KEY, JSON.stringify({ access_token: resp.access_token, expires_at: Date.now() + (Number(resp.expires_in) || 3600) * 1000 })); } catch {}
+    const t = { access_token: resp.access_token, expires_at: Date.now() + (Number(resp.expires_in) || 3600) * 1000 };
+    try { localStorage.setItem(TOKEN_KEY, JSON.stringify(t)); } catch {}
+    scheduleRefresh();
+    return t;
   };
-  const clearToken = () => { try { sessionStorage.removeItem(TOKEN_KEY); } catch {} };
+  const clearToken = () => { try { localStorage.removeItem(TOKEN_KEY); } catch {} };
+  const readProfile = () => { try { return JSON.parse(localStorage.getItem(USER_KEY) || 'null'); } catch { return null; } };
+  const storeProfile = (u) => { try { localStorage.setItem(USER_KEY, JSON.stringify(u)); } catch {} };
+  const clearProfile = () => { try { localStorage.removeItem(USER_KEY); } catch {} };
 
   function loadGIS() {
     if (window.google?.accounts?.oauth2) return Promise.resolve();
@@ -2091,17 +2241,83 @@ const GoogleCloud = (() => {
     return tokenClient;
   }
 
-  function handleExpired() {
-    clearToken(); fileId = null; api.user = null;
-    setState('signed-out', 'Tu sesión de Google expiró. Vuelve a acceder para sincronizar.');
-    toast('Tu sesión de Google expiró. Pulsa «Acceder con Google» otra vez.');
+  function requestToken(overrides, { silent = false } = {}) {
+    if (tokenWaiter) return tokenWaiter.promise;
+    const waiter = { silent };
+    waiter.promise = new Promise((resolve, reject) => {
+      waiter.resolve = resolve;
+      waiter.reject = reject;
+    });
+    tokenWaiter = waiter;
+    ensureTokenClient()
+      .then((client) => client.requestAccessToken(overrides))
+      .catch((e) => {
+        if (tokenWaiter === waiter) tokenWaiter = null;
+        waiter.reject(e);
+      });
+    return waiter.promise;
+  }
+
+  async function silentRefresh() {
+    if (!getClientId()) return null;
+    try {
+      const resp = await requestToken({ prompt: 'none', login_hint: readProfile()?.email || '' }, { silent: true });
+      return resp?.access_token || null;
+    } catch { return null; }
+  }
+
+  async function getValidToken({ allowInteractive = false, force = false } = {}) {
+    if (!force) {
+      const token = getToken();
+      if (token) return token;
+    }
+    const silent = await silentRefresh();
+    if (silent || !allowInteractive) return silent;
+    try {
+      const resp = await requestToken({ prompt: '', login_hint: readProfile()?.email || '' }, { silent: true });
+      return resp?.access_token || null;
+    } catch { return null; }
+  }
+
+  function scheduleRefresh() {
+    clearTimeout(refreshTimer);
+    const t = readToken();
+    if (!t || !getClientId()) return;
+    const delay = Math.max(30000, Number(t.expires_at) - Date.now() - 5 * 60000);
+    refreshTimer = setTimeout(async () => {
+      const token = await silentRefresh();
+      if (token) scheduleRefresh();
+    }, delay);
+  }
+
+  function markExpired() {
+    setState('expired', 'La sesión de Google caducó. Pulsa «Sincronizar ahora» para reconectarte sin configurar nada.');
+    armRetryOnGesture();
+  }
+
+  function armRetryOnGesture() {
+    if (retryArmed) return;
+    retryArmed = true;
+    const retry = async () => {
+      document.removeEventListener('pointerdown', retry, true);
+      retryArmed = false;
+      if (api.state !== 'expired' || !api.user) return;
+      const fresh = await silentRefresh();
+      if (fresh && api.user) await activateSession(fresh, { refreshProfile: true });
+    };
+    document.addEventListener('pointerdown', retry, true);
   }
 
   async function driveFetch(url, opts = {}) {
-    const token = getToken();
-    if (!token) { handleExpired(); throw new Error('expired'); }
-    const res = await fetch(url, { ...opts, headers: { ...(opts.headers || {}), Authorization: `Bearer ${token}` } });
-    if (res.status === 401) { handleExpired(); throw new Error('expired'); }
+    const send = (token) => fetch(url, { ...opts, headers: { ...(opts.headers || {}), Authorization: `Bearer ${token}` } });
+    let token = await getValidToken();
+    if (!token) { markExpired(); throw new Error('expired'); }
+    let res = await send(token);
+    if (res.status === 401) {
+      token = await getValidToken({ force: true });
+      if (!token) { markExpired(); throw new Error('expired'); }
+      res = await send(token);
+    }
     return res;
   }
 
@@ -2166,7 +2382,7 @@ const GoogleCloud = (() => {
   }
 
   async function pushNow() {
-    if (!api.user || applyingRemote || !getToken()) return;
+    if (!api.user || applyingRemote) return;
     clearTimeout(pushTimer);
     setState('syncing', 'Guardando en tu Google Drive…');
     try {
@@ -2180,7 +2396,7 @@ const GoogleCloud = (() => {
   }
 
   function queuePush() {
-    if (!api.user || applyingRemote || !getToken()) return;
+    if (!api.user || applyingRemote || api.state === 'expired') return;
     clearTimeout(pushTimer);
     setState('syncing', 'Cambios pendientes de subir…');
     pushTimer = setTimeout(pushNow, 1500);
@@ -2226,20 +2442,31 @@ const GoogleCloud = (() => {
   async function onToken(resp) {
     signingIn = false;
     $('#googleSignInBtn').disabled = false;
-    if (resp?.access_token) {
-      storeToken(resp);
-      try {
-        setState('syncing', 'Conectando con tu cuenta…');
-        api.user = await fetchUserInfo(resp.access_token);
-        emit();
-        toast('¡Hola, ' + api.user.name.split(' ')[0] + '! Tu colección se guarda en tu Drive.');
-        await syncFromCloud();
-      } catch (e) {
-        setState('error', e.message);
-        toast(e.message);
-      }
-    } else {
+    const waiter = tokenWaiter;
+    tokenWaiter = null;
+    if (!resp?.access_token) {
+      waiter?.reject(new Error('No se recibió el token de Google.'));
       setState(api.user ? 'synced' : 'signed-out', '');
+      return;
+    }
+    // Si el usuario cerró sesión mientras se renovaba el token, se descarta.
+    if (waiter?.silent && !api.user && !readProfile()) {
+      waiter.reject(new Error('cancelled'));
+      return;
+    }
+    storeToken(resp);
+    if (waiter) waiter.resolve(resp);
+    try {
+      api.user = await fetchUserInfo(resp.access_token);
+      storeProfile(api.user);
+      emit();
+      if (waiter?.silent) return;
+      toast('¡Hola, ' + api.user.name.split(' ')[0] + '! Tu colección se guarda en tu Drive.');
+      await syncFromCloud();
+    } catch (e) {
+      if (waiter?.silent) return;
+      setState('error', e.message);
+      toast(e.message);
     }
   }
 
@@ -2247,6 +2474,12 @@ const GoogleCloud = (() => {
     signingIn = false;
     $('#googleSignInBtn').disabled = false;
     const type = err?.type || '';
+    const waiter = tokenWaiter;
+    tokenWaiter = null;
+    if (waiter) {
+      waiter.reject(new Error(type || 'token_error'));
+      if (waiter.silent) return;
+    }
     if (type === 'popup_closed' || type === 'user_cancel') { setState(api.user ? 'synced' : 'signed-out', ''); return; }
     if (type === 'popup_failed_to_open') { setState('error', 'El navegador bloqueó la ventana de Google. Permite ventanas emergentes.'); toast('Permite las ventanas emergentes para iniciar sesión con Google.'); return; }
     setState('error', 'No se pudo iniciar sesión con Google. Revisa el ID de cliente y el origen autorizado.');
@@ -2260,20 +2493,49 @@ const GoogleCloud = (() => {
     $('#googleSignInBtn').disabled = true;
     setState('syncing', 'Abriendo Google…');
     try {
-      const client = await ensureTokenClient();
-      client.requestAccessToken({ prompt: 'select_account' });
+      await requestToken({ prompt: 'select_account', login_hint: readProfile()?.email || '' });
     } catch (e) {
       signingIn = false;
       $('#googleSignInBtn').disabled = false;
-      setState('error', e.message);
-      toast(e.message);
+      if (api.state === 'syncing') setState('error', e.message || 'No se pudo iniciar sesión con Google.');
     }
+  }
+
+  async function activateSession(token, { refreshProfile = false } = {}) {
+    if (refreshProfile || !api.user) {
+      try {
+        api.user = await fetchUserInfo(token);
+        storeProfile(api.user);
+      } catch {
+        if (!api.user) api.user = readProfile();
+      }
+      emit();
+    }
+    scheduleRefresh();
+    await syncFromCloud();
+  }
+
+  async function reconnect() {
+    if (!getClientId()) { openGoogleModal(); return false; }
+    setState('syncing', 'Reconectando con Google…');
+    const token = await getValidToken({ allowInteractive: true });
+    if (!token) { markExpired(); return false; }
+    await activateSession(token, { refreshProfile: true });
+    return true;
+  }
+
+  async function syncNow() {
+    if (!getClientId()) { openGoogleModal(); return; }
+    if (!api.user) { signIn(); return; }
+    if (api.state === 'expired') { await reconnect(); return; }
+    await pushNow();
   }
 
   function signOut() {
     clearTimeout(pushTimer);
+    clearTimeout(refreshTimer);
     const token = getToken();
-    clearToken(); fileId = null; api.user = null;
+    clearToken(); clearProfile(); fileId = null; api.user = null;
     try { if (token && window.google?.accounts?.oauth2) google.accounts.oauth2.revoke(token, () => {}); } catch {}
     setState(getClientId() ? 'signed-out' : 'unconfigured', '');
     toggleUserMenu(false);
@@ -2283,22 +2545,39 @@ const GoogleCloud = (() => {
   function setClientId(id) { try { localStorage.setItem(ID_KEY, id); } catch {} tokenClient = null; tokenClientFor = null; }
   function clearClientId() { try { localStorage.removeItem(ID_KEY); } catch {} tokenClient = null; tokenClientFor = null; }
 
-  window.addEventListener('online', () => { if (api.user && getToken()) { setState('syncing', 'Conexión recuperada…'); syncFromCloud(); } });
+  window.addEventListener('online', () => {
+    if (!api.user) return;
+    setState('syncing', 'Conexión recuperada…');
+    syncFromCloud();
+  });
   window.addEventListener('offline', () => { if (api.user) setState('offline', 'Sin conexión · los cambios se guardan en el equipo'); });
 
   return {
-    api, signIn, signOut, pushNow, queuePush, getClientId, setClientId, clearClientId, parseClientId, ensureTokenClient,
+    api, signIn, signOut, pushNow, queuePush, reconnect, syncNow, getClientId, setClientId, clearClientId, parseClientId, ensureTokenClient,
     subscribe: (fn) => { subs.add(fn); fn(api); },
     init: async () => {
+      if (location.protocol === 'file:') { setState('unconfigured', ''); return; }
       const id = getClientId();
       if (!id) { setState('unconfigured', ''); return; }
+      loadGIS().catch(() => {});
+      const cached = readProfile();
+      if (cached) { api.user = cached; emit(); }
       const token = getToken();
       if (token) {
-        try { api.user = await fetchUserInfo(token); emit(); await syncFromCloud(); }
-        catch { clearToken(); setState('signed-out', ''); }
+        await activateSession(token, { refreshProfile: true });
+        return;
+      }
+      setState('syncing', 'Reconectando con tu cuenta de Google…');
+      const fresh = await getValidToken();
+      if (fresh) {
+        await activateSession(fresh, { refreshProfile: true });
+        return;
+      }
+      if (cached) {
+        markExpired();
       } else {
+        api.user = null;
         setState('signed-out', 'Accede con Google para guardar tu colección en la nube.');
-        loadGIS().then(() => ensureTokenClient()).catch(() => {});
       }
     },
   };
@@ -2319,6 +2598,7 @@ function renderAuthUI(s) {
   const meta = {
     syncing: ['Sincronizando', '#FF6400'], synced: ['En tu Drive', '#22c55e'],
     error: ['Error', '#ef4444'], offline: ['Sin conexión', '#71717a'],
+    expired: ['Reconectar', '#f59e0b'],
   }[s.state] || ['Conectado', '#22c55e'];
   $('#syncPill').dataset.state = s.state;
   $('#syncPillText').textContent = meta[0];
@@ -2408,7 +2688,8 @@ async function copyText(text, btn) {
 $('#googleSignInBtn').addEventListener('click', () => GoogleCloud.signIn());
 $('#userMenuBtn').addEventListener('click', (e) => { e.stopPropagation(); toggleUserMenu(); });
 $('#signOutBtn').addEventListener('click', () => GoogleCloud.signOut());
-$('#syncNowBtn').addEventListener('click', () => { GoogleCloud.pushNow(); toggleUserMenu(false); });
+$('#syncNowBtn').addEventListener('click', () => { GoogleCloud.syncNow(); toggleUserMenu(false); });
+$('#syncPill').addEventListener('click', () => { if (GoogleCloud.api.state === 'expired') GoogleCloud.reconnect(); });
 $('#googleSettingsBtn').addEventListener('click', openGoogleModal);
 document.addEventListener('click', (e) => { if (!e.target.closest('#userChip')) toggleUserMenu(false); });
 GoogleCloud.subscribe(renderAuthUI);
