@@ -231,7 +231,7 @@
         </div>
         <span id="librarySearchCount" class="text-[11px] font-semibold text-brand bg-brand/10 border border-brand/25 rounded-full px-2.5 py-1 shrink-0"></span>
       </div>
-      <p class="text-[11px] text-zinc-400 mb-3">Búsqueda en todo el catálogo (anime y manga), sin filtros de colección.</p>
+      <p id="librarySearchHint" class="text-[11px] text-zinc-400 mb-3">Búsqueda en todo el catálogo (anime y manga).</p>
       <div id="librarySearchResults" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3"></div>
     </section>
 
@@ -391,7 +391,7 @@ const MANGA_STATUSES = {
   done:    '✅ Leído',
 };
 
-const FORMAT_LABELS = { TV: 'Anime', MOVIE: 'Película', OVA: 'OVA', ONA: 'ONA', SPECIAL: 'Especial', MANGA: 'Manga', NOVEL: 'Novela', ONE_SHOT: 'One-shot' };
+const FORMAT_LABELS = { TV: 'Serie', MOVIE: 'Película', OVA: 'OVA', ONA: 'ONA', SPECIAL: 'Especial', MANGA: 'Manga', NOVEL: 'Novela', ONE_SHOT: 'One-shot' };
 
 const ANIME_FORMATS = [['ALL', '🌍 Todo'], ['TV', '📺 Series (TV)'], ['MOVIE', '🎬 Películas'], ['OVA', '💿 OVAs'], ['ONA', '🌐 ONAs'], ['SPECIAL', '⭐ Especiales']];
 const MANGA_FORMATS = [['ALL', '🌍 Todo'], ['MANGA', '📖 Manga'], ['NOVEL', '📚 Novelas'], ['ONE_SHOT', '🎯 One-shots']];
@@ -479,10 +479,13 @@ const Store = {
       const status = rawStatus in validStatuses ? rawStatus : 'later';
       if (status === 'done' && total) progress = total;
       const addedAt = Number(a.addedAt) || Date.now();
+      const format = typeof a.format === 'string' && FORMAT_LABELS[a.format]
+        ? a.format
+        : (mediaType === 'MANGA' ? 'MANGA' : 'TV');
       out.items[id] = {
         id,
         type: mediaType,
-        format: a.format || (mediaType === 'MANGA' ? 'MANGA' : 'TV'),
+        format,
         title: String(a.title || 'Sin título').slice(0, 200),
         cover: typeof a.cover === 'string' && a.cover.startsWith('https://') ? a.cover : '',
         total, progress,
@@ -492,6 +495,7 @@ const Store = {
         fav: !!a.fav,
         addedAt,
         updatedAt: Number(a.updatedAt) || addedAt,
+        metaAt: Number(a.metaAt) || 0,
       };
     }
     const del = obj && typeof obj.deleted === 'object' && obj.deleted ? obj.deleted : {};
@@ -600,6 +604,71 @@ async function fetchDetail(id) {
   return mediaCache.get(id);
 }
 
+const MEDIA_META_Q = `query($ids:[Int]){
+  Page(page:1, perPage:50){
+    media(id_in:$ids){
+      id type format title{romaji english native} coverImage{large} episodes chapters genres tags{name}
+    }
+  }
+}`;
+
+// Los títulos guardados antes del sistema de formatos no tienen `format` real.
+// Se completan una sola vez desde AniList y se marcan con `metaAt`.
+let metadataRepairRun = null;
+function repairStoredMetadata() {
+  if (metadataRepairRun) return metadataRepairRun;
+  metadataRepairRun = (async () => {
+    const pending = Store.list().filter((a) => !a.metaAt);
+    if (!pending.length) return;
+    let repaired = 0;
+    for (let i = 0; i < pending.length; i += 50) {
+      const batch = pending.slice(i, i + 50);
+      let media;
+      try {
+        const data = await gql(MEDIA_META_Q, { ids: batch.map((a) => a.id) });
+        media = data?.Page?.media || [];
+      } catch (e) {
+        console.warn('No se pudieron actualizar los metadatos guardados', e);
+        return;
+      }
+      const byId = new Map(media.map((m) => [m.id, m]));
+      let changed = false;
+      for (const a of batch) {
+        const m = byId.get(a.id);
+        if (!m) { a.metaAt = Date.now(); changed = true; continue; }
+        const isManga = m.type === 'MANGA';
+        const type = isManga ? 'MANGA' : 'ANIME';
+        let meaningful = false;
+        if (a.type !== type) { a.type = type; meaningful = true; }
+        if (FORMAT_LABELS[m.format] && a.format !== m.format) { a.format = m.format; meaningful = true; }
+        if (!a.cover && m.coverImage?.large) { a.cover = m.coverImage.large; meaningful = true; }
+        if (!a.title || a.title === 'Sin título') { a.title = titleOf(m); meaningful = true; }
+        if (!a.genres?.length && Array.isArray(m.genres)) { a.genres = m.genres.slice(); meaningful = true; }
+        const tags = (m.tags || []).map((t) => typeof t === 'string' ? t : t.name).filter(Boolean);
+        if (!a.tags?.length && tags.length) { a.tags = tags; meaningful = true; }
+        const apiTotal = isManga ? (m.chapters || null) : (m.episodes || null);
+        if (!a.total && apiTotal) { a.total = apiTotal; meaningful = true; }
+
+        let status = a.status;
+        if (isManga && status === 'watching') status = 'reading';
+        if (!isManga && status === 'reading') status = 'watching';
+        if (!(status in statusDictOf(type))) status = inProgressStatusOf(type);
+        a.status = status;
+        if (a.total) a.progress = Math.min(a.progress, a.total);
+        if (a.status === 'done' && a.total) a.progress = a.total;
+
+        a.metaAt = Date.now();
+        if (meaningful) { a.updatedAt = Date.now(); repaired++; }
+        changed = true;
+      }
+      if (changed) { Store.save(); renderAll(); }
+      if (i + 50 < pending.length) await new Promise((r) => setTimeout(r, 600));
+    }
+    if (repaired) toast('Se actualizaron los formatos y categorías de tu colección guardada.');
+  })().finally(() => { metadataRepairRun = null; });
+  return metadataRepairRun;
+}
+
 let currentTab = 'all';
 let showingLibrary = false;
 let librarySort = 'recent';
@@ -611,14 +680,21 @@ let pendingModalFav = false;
 function syncSearchUI() {
   const input = $('#searchInput');
   input.placeholder = showingLibrary
-    ? 'Buscar en todo el catálogo de AniList (anime y manga)…'
+    ? 'Buscar en el catálogo de AniList con tus filtros…'
     : 'Buscar animé, manga, película u OVA en AnimeList…';
   $('#clearSearchBtn').classList.toggle('hidden', !(input.value.trim() || activeCategory.label !== 'Todos'));
 }
 
+function libraryShowsAll() {
+  return showingLibrary && activeTypeFilter === 'ALL';
+}
+
 function renderFormatOptions() {
   const select = $('#formatFilterSelect');
-  const options = FORMAT_OPTIONS[showingLibrary ? currentMediaType : activeTypeFilter] || FORMAT_OPTIONS.ALL;
+  const scope = showingLibrary
+    ? (activeTypeFilter === 'ALL' ? 'ALL' : currentMediaType)
+    : activeTypeFilter;
+  const options = FORMAT_OPTIONS[scope] || FORMAT_OPTIONS.ALL;
   if (!options.some(([value]) => value === activeFormatFilter)) activeFormatFilter = 'ALL';
   select.innerHTML = options.map(([value, label]) => `<option value="${value}">${label}</option>`).join('');
   select.value = activeFormatFilter;
@@ -653,6 +729,14 @@ function searchSkeleton() {
     </div>`).join('');
 }
 
+function libraryFilterLabels() {
+  const labels = [];
+  if (activeTypeFilter !== 'ALL') labels.push(activeTypeFilter === 'MANGA' ? 'Manga' : 'Anime');
+  if (activeFormatFilter !== 'ALL') labels.push(FORMAT_LABELS[activeFormatFilter] || activeFormatFilter);
+  if (activeCategory.label !== 'Todos') labels.push(activeCategory.label);
+  return labels;
+}
+
 async function runLibrarySearch() {
   if (!showingLibrary) return;
   const q = $('#searchInput').value.trim();
@@ -660,13 +744,19 @@ async function runLibrarySearch() {
   const box = $('#librarySearchResults');
   const count = $('#librarySearchCount');
 
+  const filters = libraryFilterLabels();
+  const hint = $('#librarySearchHint');
+  hint.textContent = filters.length
+    ? `Buscando en el catálogo con filtros: ${filters.join(' · ')}.`
+    : 'Búsqueda en todo el catálogo (anime y manga).';
+
   if (q.length < 2) {
     if (!q) { hideLibrarySearch(); return; }
     librarySearchToken++;
     panel.classList.remove('hidden');
     $('#librarySearchTitle').textContent = 'Resultados en AniList';
     count.textContent = '';
-    box.innerHTML = `<p class="col-span-full text-sm text-zinc-400 py-6 text-center">Escribe al menos 2 caracteres para buscar en todo el catálogo.</p>`;
+    box.innerHTML = `<p class="col-span-full text-sm text-zinc-400 py-6 text-center">Escribe al menos 2 caracteres para buscar en el catálogo con tus filtros.</p>`;
     return;
   }
 
@@ -679,8 +769,10 @@ async function runLibrarySearch() {
   try {
     const { media } = await fetchMediaPage({
       q,
-      type: 'ALL',
-      format: 'ALL',
+      genre: activeCategory.genre,
+      tag: activeCategory.tag,
+      type: activeTypeFilter,
+      format: activeFormatFilter,
       page: 1,
       sort: ['SEARCH_MATCH'],
       perPage: LIBRARY_SEARCH_MAX,
@@ -710,6 +802,7 @@ function applyViewState() {
   btn.textContent = showingLibrary ? '← Catálogo' : 'Colección';
   btn.setAttribute('aria-pressed', String(showingLibrary));
   renderFormatOptions();
+  syncMediaTypeButtons();
   syncSearchUI();
 }
 
@@ -843,12 +936,13 @@ function confirmAddModal() {
 
 function syncMediaTypeButtons() {
   const isAnime = currentMediaType !== 'MANGA';
+  const showAll = libraryShowsAll();
   const active = 'bg-brand text-black';
   const idle = 'bg-surface border border-line text-zinc-300 hover:border-brand';
-  $('#mediaTypeAnimeBtn').className = `px-5 py-2.5 rounded-xl font-bold text-sm transition cursor-pointer ${isAnime ? active : idle}`;
-  $('#mediaTypeMangaBtn').className = `px-5 py-2.5 rounded-xl font-bold text-sm transition cursor-pointer ${!isAnime ? active : idle}`;
-  $('#mediaTypeAnimeBtn').setAttribute('aria-pressed', String(isAnime));
-  $('#mediaTypeMangaBtn').setAttribute('aria-pressed', String(!isAnime));
+  $('#mediaTypeAnimeBtn').className = `px-5 py-2.5 rounded-xl font-bold text-sm transition cursor-pointer ${isAnime && !showAll ? active : idle}`;
+  $('#mediaTypeMangaBtn').className = `px-5 py-2.5 rounded-xl font-bold text-sm transition cursor-pointer ${!isAnime && !showAll ? active : idle}`;
+  $('#mediaTypeAnimeBtn').setAttribute('aria-pressed', String(isAnime && !showAll));
+  $('#mediaTypeMangaBtn').setAttribute('aria-pressed', String(!isAnime && !showAll));
 }
 
 function addAnimeWithStatus(m, initialStatus, isFav = false) {
@@ -874,6 +968,7 @@ function addAnimeWithStatus(m, initialStatus, isFav = false) {
     fav: isFav,
     addedAt: Date.now(),
     updatedAt: Date.now(),
+    metaAt: Date.now(),
   };
   delete Store.data.deleted[m.id];
   Store.save();
@@ -881,6 +976,10 @@ function addAnimeWithStatus(m, initialStatus, isFav = false) {
     currentMediaType = type;
     currentTab = 'all';
     activeFormatFilter = 'ALL';
+    if (activeTypeFilter !== 'ALL') {
+      activeTypeFilter = type;
+      syncTypeFilterButtons();
+    }
     syncMediaTypeButtons();
     renderFormatOptions();
   } else if (activeFormatFilter !== 'ALL' && activeFormatFilter !== Store.data.items[m.id].format) {
@@ -937,13 +1036,25 @@ function renderCategoryDropdown() {
 }
 
 function statusTabs() {
+  if (libraryShowsAll()) {
+    return {
+      all: 'Todos',
+      watching: '📺 En espera',
+      reading: '📖 Leyendo',
+      airing: '🔴 En emisión',
+      later: '📌 Pendientes',
+      done: '✅ Completados',
+      fav: '⭐ Favoritos',
+    };
+  }
   return { all: 'Todos', ...statusDictOf(currentMediaType), fav: '⭐ Favoritos' };
 }
 
 // Mismo conjunto base para contadores y tarjetas: evita que una pestaña muestre
 // un número distinto al de las tarjetas realmente visibles.
 function collectionItems() {
-  let items = Store.list().filter((a) => a.type === currentMediaType);
+  let items = Store.list();
+  if (!libraryShowsAll()) items = items.filter((a) => a.type === currentMediaType);
   if (activeFormatFilter !== 'ALL') items = items.filter((a) => a.format === activeFormatFilter);
   if (activeCategory.genre) items = items.filter((a) => (a.genres || []).includes(activeCategory.genre));
   if (activeCategory.tag) items = items.filter((a) => (a.tags || []).includes(activeCategory.tag));
@@ -1029,7 +1140,10 @@ function libraryCard(a) {
 
 function renderLibrary() {
   const isManga = currentMediaType === 'MANGA';
-  $('#collectionTitle').textContent = isManga ? 'Colección de Manga' : 'Colección de Anime';
+  const showAll = libraryShowsAll();
+  $('#collectionTitle').textContent = showAll
+    ? 'Mi Colección (Anime y Manga)'
+    : (isManga ? 'Colección de Manga' : 'Colección de Anime');
 
   let items = collectionItems();
   if (currentTab === 'fav') items = items.filter((a) => a.fav);
@@ -1040,22 +1154,32 @@ function renderLibrary() {
     : (x, y) => y.addedAt - x.addedAt);
 
   $('#library').innerHTML = items.map(libraryCard).join('');
-  const entityLabel = isManga
-    ? (items.length === 1 ? 'Manga' : 'Mangas')
-    : (items.length === 1 ? 'Anime' : 'Animes');
+  const entityLabel = showAll
+    ? (items.length === 1 ? 'Título' : 'Títulos')
+    : isManga
+      ? (items.length === 1 ? 'Manga' : 'Mangas')
+      : (items.length === 1 ? 'Anime' : 'Animes');
   $('#libraryCount').textContent = `${items.length} ${entityLabel}`;
 
   const empty = $('#empty');
   empty.classList.toggle('hidden', items.length > 0);
   if (!items.length) {
-    const hasAny = Store.list().some((a) => a.type === currentMediaType);
+    const hasAny = showAll
+      ? Store.list().length > 0
+      : Store.list().some((a) => a.type === currentMediaType);
     empty.textContent = hasAny
       ? `Ningún título coincide con los filtros activos (${entityLabel.toLowerCase()}).`
-      : `Tu colección de ${isManga ? 'manga' : 'anime'} está vacía. Busca arriba y pulsa “+ Agregar”.`;
+      : `Tu colección de ${showAll ? 'anime y manga' : isManga ? 'manga' : 'anime'} está vacía. Busca arriba y pulsa “+ Agregar”.`;
   }
 }
 
 function renderAll() { renderTabs(); renderLibrary(); }
+
+function refreshLibraryFilters() {
+  renderAll();
+  syncMediaTypeButtons();
+  if (showingLibrary && $('#searchInput').value.trim()) runLibrarySearch();
+}
 
 function refreshCardControls(id) {
   const inList = Store.get(id);
@@ -1358,15 +1482,14 @@ document.addEventListener('click', (e) => {
       toggleLibraryView();
       break;
     case 'switch-media-type': {
-      if (currentMediaType === btn.dataset.type) break;
+      if (!libraryShowsAll() && currentMediaType === btn.dataset.type) break;
       currentMediaType = btn.dataset.type === 'MANGA' ? 'MANGA' : 'ANIME';
       currentTab = 'all';
       activeTypeFilter = currentMediaType;
       activeFormatFilter = 'ALL';
-      syncMediaTypeButtons();
       syncTypeFilterButtons();
       renderFormatOptions();
-      renderAll();
+      refreshLibraryFilters();
       break;
     }
     case 'select-category': {
@@ -1376,7 +1499,7 @@ document.addEventListener('click', (e) => {
       renderCategoryDropdown();
       $('#categoriesDropdown').classList.add('hidden');
       if (showingLibrary) {
-        renderAll();
+        refreshLibraryFilters();
         syncSearchUI();
       } else loadMainCatalog();
       break;
@@ -1482,7 +1605,7 @@ document.querySelectorAll('[data-type-filter]').forEach(btn => {
     syncMediaTypeButtons();
     renderFormatOptions();
     if (showingLibrary) {
-      renderAll();
+      refreshLibraryFilters();
     } else {
       currentPage = 1;
       loadMainCatalog();
@@ -1493,7 +1616,7 @@ document.querySelectorAll('[data-type-filter]').forEach(btn => {
 $('#formatFilterSelect').onchange = (e) => {
   activeFormatFilter = e.target.value;
   if (showingLibrary) {
-    renderAll();
+    refreshLibraryFilters();
   } else {
     currentPage = 1;
     loadMainCatalog();
@@ -1681,6 +1804,7 @@ const GoogleCloud = (() => {
     } finally {
       applyingRemote = false;
     }
+    repairStoredMetadata();
   }
 
   async function syncFromCloud() {
@@ -1898,7 +2022,7 @@ syncMediaTypeButtons();
 applyViewState();
 renderAll();
 loadMainCatalog();
-GoogleCloud.init();
+GoogleCloud.init().catch(() => {}).finally(() => { repairStoredMetadata(); });
 })();
 </script>
 </body>
