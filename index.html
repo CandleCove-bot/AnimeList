@@ -103,17 +103,16 @@
 
   <!-- ENCABEZADO Y LOGIN -->
   <header class="flex flex-wrap items-center justify-between gap-3 mb-4">
-    <div class="flex items-center gap-3">
-      <h1 id="logoHomeBtn" role="button" tabindex="0" class="text-2xl font-bold tracking-tight cursor-pointer select-none rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-brand" title="Volver al inicio">
-        <span class="text-brand">Anime</span><span class="text-white">List</span>
-      </h1>
+    <h1 id="logoHomeBtn" role="button" tabindex="0" class="text-2xl font-bold tracking-tight cursor-pointer select-none rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-brand" title="Volver al inicio">
+      <span class="text-brand">Anime</span><span class="text-white">List</span>
+    </h1>
+
+    <div class="flex items-center gap-2 ml-auto">
       <button id="listViewBtn" data-action="toggle-library-view" aria-pressed="false"
-        class="px-4 py-2 rounded-xl bg-brand text-black font-extrabold text-sm sm:text-base shadow-lg hover:bg-orange-500 active:scale-95 transition cursor-pointer">
+        class="px-4 py-2 rounded-xl bg-brand text-black font-extrabold text-sm shadow-lg hover:bg-orange-500 active:scale-95 transition cursor-pointer whitespace-nowrap">
         Colección
       </button>
-    </div>
-    
-    <div class="flex items-center gap-2">
+
       <div id="authArea" class="flex items-center gap-2">
         <button id="googleSignInBtn" type="button"
           class="group flex items-center gap-2 pl-2.5 pr-3 py-2 rounded-xl bg-surface border border-line text-xs font-bold hover:border-brand hover:shadow-[0_0_20px_-8px_rgba(255,100,0,.6)] active:scale-95 transition cursor-pointer">
@@ -160,8 +159,9 @@
         </span>
       </div>
 
-      <button id="themeToggleBtn" data-action="toggle-theme" aria-label="Cambiar tema" class="px-3 py-2 rounded-xl bg-surface border border-line text-xs font-bold hover:border-brand transition cursor-pointer flex items-center gap-2">
-        <span id="themeIcon">☀️</span> <span id="themeText" class="hidden sm:inline">Modo Claro</span>
+      <button id="themeToggleBtn" data-action="toggle-theme" aria-label="Cambiar a modo claro" title="Cambiar a modo claro"
+        class="w-10 h-10 flex items-center justify-center rounded-xl bg-surface border border-line hover:border-brand active:scale-95 transition cursor-pointer shrink-0">
+        <span id="themeIcon" class="text-base leading-none">☀️</span>
       </button>
     </div>
   </header>
@@ -208,6 +208,7 @@
     <section id="searchPanel" class="mb-8">
       <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
         <h2 id="searchTitle" class="font-semibold text-base sm:text-lg">Catálogo General (Anime & Manga)</h2>
+        <span id="searchCount" class="hidden text-[11px] font-semibold text-brand bg-brand/10 border border-brand/25 rounded-full px-2.5 py-1 shrink-0"></span>
       </div>
       <div id="paginationTopContainer" class="flex justify-center items-center gap-1.5 mb-3 flex-wrap text-xs"></div>
       <div id="searchResults" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5"></div>
@@ -219,7 +220,14 @@
   <section id="libraryView" class="hidden">
     <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
       <h2 class="font-bold text-lg sm:text-xl shrink-0">Mi Colección</h2>
-      <button data-action="toggle-library-view" class="px-3 sm:px-4 py-2 rounded-lg bg-surface border border-line text-xs sm:text-sm font-semibold hover:border-brand cursor-pointer shrink-0">← Volver al catálogo</button>
+      <div class="flex flex-wrap items-center gap-2">
+        <div id="libraryLayoutBar" class="flex gap-1 bg-surface border border-line rounded-xl p-1 text-xs font-semibold" role="group" aria-label="Vista de la colección">
+          <button type="button" data-action="set-library-layout" data-layout="grid" title="Cuadrícula de portadas">▦ Iconos</button>
+          <button type="button" data-action="set-library-layout" data-layout="list" title="Lista compacta">☰ Lista</button>
+          <button type="button" data-action="set-library-layout" data-layout="detail" title="Fichas detalladas">🔍 Detalle</button>
+        </div>
+        <button data-action="toggle-library-view" class="px-3 sm:px-4 py-2 rounded-lg bg-surface border border-line text-xs sm:text-sm font-semibold hover:border-brand cursor-pointer shrink-0">← Volver al catálogo</button>
+      </div>
     </div>
 
     <!-- RESULTADOS DE LA BARRA SUPERIOR: TODO EL CATÁLOGO DE ANILIST -->
@@ -532,6 +540,11 @@ let activeCategory = ALL_CATEGORIES[0];
 let activeSort = 'POPULARITY_DESC';
 let currentPage = 1;
 const PER_PAGE = 20;
+// AniList devuelve como máximo 5000 resultados (50 páginas de 100), por eso
+// `lastPage` se queda fijo en 250 con 20 por página. Se marca como aproximado.
+const RESULTS_CAP = 5000;
+let homeOffset = 1;
+let partialSearchState = null;
 let currentMediaType = 'ANIME';
 let activeTypeFilter = 'ALL';
 let activeFormatFilter = 'ALL';
@@ -565,9 +578,14 @@ const DETAIL_Q = `query($id:Int){Media(id:$id){
 }}`;
 
 let apiCtrl = null;
-async function fetchMediaPage({ q = null, genre = null, tag = null, type = null, format = null, page = 1, sort = ['POPULARITY_DESC'], perPage = PER_PAGE } = {}) {
+function beginApiRequest() {
   apiCtrl?.abort();
   apiCtrl = new AbortController();
+  return apiCtrl.signal;
+}
+
+async function fetchMediaPage({ q = null, genre = null, tag = null, type = null, format = null, page = 1, sort = ['POPULARITY_DESC'], perPage = PER_PAGE } = {}) {
+  const signal = beginApiRequest();
 
   const sortKey = Array.isArray(sort) ? sort[0] : sort;
   const hiddenGems = sortKey === 'HIDDEN_GEMS';
@@ -579,7 +597,7 @@ async function fetchMediaPage({ q = null, genre = null, tag = null, type = null,
   if (type && type !== 'ALL') vars.type = type;
   if (format && format !== 'ALL') vars.format = format;
 
-  const data = await gql(ANILIST_PAGINATED_QUERY, vars, apiCtrl.signal);
+  const data = await gql(ANILIST_PAGINATED_QUERY, vars, signal);
   const pageInfo = data.Page.pageInfo;
   let media = data.Page.media;
 
@@ -602,6 +620,132 @@ async function fetchDetail(id) {
   const data = await gql(DETAIL_Q, { id });
   mediaCache.set(id, { ...cached, ...data.Media });
   return mediaCache.get(id);
+}
+
+// ===================== BÚSQUEDA PARCIAL =====================
+// La búsqueda de AniList solo coincide con palabras completas ("poke" devuelve
+// 0 aunque exista "Pokémon"). Kitsu sí busca por prefijos, así que se usa como
+// fuente complementaria: sus resultados se traducen a IDs de AniList y se
+// filtran localmente por coincidencia parcial del título.
+const KITSU_BASE = 'https://kitsu.io/api/edge';
+const KITSU_KINDS = { ANIME: ['anime'], MANGA: ['manga'], ALL: ['anime', 'manga'] };
+const KITSU_SITE = { anime: 'anilist/anime', manga: 'anilist/manga' };
+const KITSU_PAGES = 3;
+
+const ANILIST_BY_IDS_Q = `query($ids:[Int], $type:MediaType){
+  Page(page:1, perPage:50){
+    media(id_in:$ids, type:$type, isAdult:false){
+      id type format title{romaji english native} coverImage{large} episodes chapters volumes status seasonYear genres tags{name} averageScore popularity
+    }
+  }
+}`;
+
+const partialSearchCache = new Map();
+const SEARCH_CACHE_MS = 120000;
+
+async function fetchMediaByIds(ids, type, signal) {
+  const out = [];
+  for (let i = 0; i < ids.length; i += 50) {
+    try {
+      const vars = { ids: ids.slice(i, i + 50) };
+      if (type && type !== 'ALL') vars.type = type;
+      const data = await gql(ANILIST_BY_IDS_Q, vars, signal);
+      out.push(...(data?.Page?.media || []));
+    } catch (e) {
+      if (e.name === 'AbortError') throw e;
+      break;
+    }
+  }
+  out.forEach((m) => mediaCache.set(m.id, { ...mediaCache.get(m.id), ...m }));
+  return out;
+}
+
+async function kitsuSearchIds(q, kind, signal) {
+  const limit = 20;
+  const ids = new Set();
+  let count = 0;
+  for (let p = 0; p < KITSU_PAGES; p++) {
+    const params = new URLSearchParams({
+      'filter[text]': q,
+      'page[limit]': String(limit),
+      'page[offset]': String(p * limit),
+      'fields[mappings]': 'externalSite,externalId',
+      [`fields[${kind}]`]: 'canonicalTitle',
+      include: 'mappings',
+    });
+    let json;
+    try {
+      const res = await fetch(`${KITSU_BASE}/${kind}?${params.toString()}`, {
+        headers: { Accept: 'application/vnd.api+json' },
+        signal,
+      });
+      if (!res.ok) break;
+      json = await res.json();
+    } catch (e) {
+      if (e.name === 'AbortError') throw e;
+      break;
+    }
+    if (p === 0) count = Number(json?.meta?.count) || 0;
+    for (const inc of json?.included || []) {
+      if (inc?.attributes?.externalSite !== KITSU_SITE[kind]) continue;
+      const n = Number(inc.attributes.externalId);
+      if (Number.isInteger(n) && n > 0) ids.add(n);
+    }
+    const received = Array.isArray(json?.data) ? json.data.length : 0;
+    if (received < limit) break;
+  }
+  return { ids: [...ids], count };
+}
+
+function mediaMatchesFilters(m, { type, format, genre, tag }) {
+  if (type && type !== 'ALL' && m.type !== type) return false;
+  if (format && format !== 'ALL' && m.format !== format) return false;
+  if (genre && !(m.genres || []).includes(genre)) return false;
+  if (tag && !(m.tags || []).some((t) => (typeof t === 'string' ? t : t.name) === tag)) return false;
+  return true;
+}
+
+function sortMediaLocally(list, sortKey) {
+  const arr = list.slice();
+  if (sortKey === 'HIDDEN_GEMS') {
+    return arr
+      .filter((m) => (m.averageScore || 0) >= 75 && (m.popularity || 0) < 60000)
+      .sort((a, b) => (b.averageScore || 0) - (a.averageScore || 0));
+  }
+  if (sortKey === 'TITLE_ENGLISH') return arr.sort((a, b) => collator.compare(titleOf(a), titleOf(b)));
+  if (sortKey === 'SCORE_DESC') return arr.sort((a, b) => (b.averageScore || 0) - (a.averageScore || 0));
+  return arr.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
+}
+
+async function fetchPartialMatches({ q, genre, tag, type, format, sortKey, signal }) {
+  const cacheKey = JSON.stringify([norm(q), genre, tag, type, format, sortKey]);
+  const cached = partialSearchCache.get(cacheKey);
+  if (cached && Date.now() - cached.at < SEARCH_CACHE_MS) return cached.value;
+
+  const nq = norm(q);
+  let kitsuIds = [];
+  let kitsuCount = 0;
+  try {
+    const kinds = KITSU_KINDS[type] || KITSU_KINDS.ALL;
+    const found = await Promise.all(kinds.map((kind) => kitsuSearchIds(q, kind, signal)));
+    kitsuIds = [...new Set(found.flatMap((r) => r.ids))];
+    kitsuCount = found.reduce((sum, r) => sum + r.count, 0);
+  } catch (e) {
+    if (e.name === 'AbortError') throw e;
+  }
+
+  const candidates = kitsuIds.length ? await fetchMediaByIds(kitsuIds, type, signal) : [];
+  const value = {
+    media: candidates.filter((m) => {
+      if (!mediaMatchesFilters(m, { type, format, genre, tag })) return false;
+      const titles = [m.title?.english, m.title?.romaji, m.title?.native].filter(Boolean);
+      return titles.some((t) => norm(t).includes(nq));
+    }),
+    kitsuCount,
+  };
+  if (partialSearchCache.size > 40) partialSearchCache.delete(partialSearchCache.keys().next().value);
+  partialSearchCache.set(cacheKey, { at: Date.now(), value });
+  return value;
 }
 
 const MEDIA_META_Q = `query($ids:[Int]){
@@ -672,6 +816,9 @@ function repairStoredMetadata() {
 let currentTab = 'all';
 let showingLibrary = false;
 let librarySort = 'recent';
+const LIBRARY_LAYOUT_KEY = 'animelist_library_layout';
+const LIBRARY_LAYOUTS = ['grid', 'list', 'detail'];
+let libraryLayout = 'grid';
 let librarySearchToken = 0;
 let pendingItemToAdd = null;
 let pendingModalStatus = 'watching';
@@ -767,21 +914,50 @@ async function runLibrarySearch() {
   box.innerHTML = searchSkeleton();
 
   try {
-    const { media } = await fetchMediaPage({
+    const { media, pageInfo } = await fetchMediaPage({
       q,
       genre: activeCategory.genre,
       tag: activeCategory.tag,
       type: activeTypeFilter,
       format: activeFormatFilter,
       page: 1,
-      sort: ['SEARCH_MATCH'],
+      sort: ['POPULARITY_DESC'],
       perPage: LIBRARY_SEARCH_MAX,
     });
     if (token !== librarySearchToken || !showingLibrary) return;
-    const results = media.slice(0, LIBRARY_SEARCH_MAX);
-    count.textContent = results.length
-      ? `${results.length} ${results.length === 1 ? 'resultado' : 'resultados'} · máx. ${LIBRARY_SEARCH_MAX}`
-      : 'Sin resultados';
+
+    let results = media;
+    let total = pageInfo.hasNextPage ? null : media.length;
+    if (!pageInfo.hasNextPage && media.length < LIBRARY_SEARCH_MAX) {
+      const { media: extra } = await fetchPartialMatches({
+        q,
+        genre: activeCategory.genre,
+        tag: activeCategory.tag,
+        type: activeTypeFilter,
+        format: activeFormatFilter,
+        sortKey: 'POPULARITY_DESC',
+        signal: beginApiRequest(),
+      });
+      if (token !== librarySearchToken || !showingLibrary) return;
+      const seen = new Set(results.map((m) => m.id));
+      const merged = results.slice();
+      for (const m of extra) {
+        if (!m || seen.has(m.id)) continue;
+        seen.add(m.id);
+        merged.push(m);
+      }
+      results = sortMediaLocally(merged, 'POPULARITY_DESC');
+      total = results.length;
+    }
+
+    const visible = results.slice(0, LIBRARY_SEARCH_MAX);
+    count.textContent = total === null
+      ? `${LIBRARY_SEARCH_MAX}+ resultados`
+      : !total
+        ? 'Sin resultados'
+        : visible.length < total
+          ? `Mostrando ${visible.length} de ${total}`
+          : `${total} ${total === 1 ? 'resultado' : 'resultados'}`;
     box.innerHTML = results.length
       ? results.map(resultCard).join('')
       : `<p class="col-span-full text-sm text-zinc-400 py-8 text-center">No se encontró nada para “${esc(q)}” en el catálogo de AniList.</p>`;
@@ -814,6 +990,7 @@ function toggleLibraryView() {
     runLibrarySearch();
   } else {
     hideLibrarySearch();
+    if (isIdleCatalog()) { shuffleHomeOffset(); currentPage = 1; }
     loadMainCatalog();
   }
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -832,6 +1009,7 @@ function goHome() {
   activeSort = 'POPULARITY_DESC';
   currentPage = 1;
   currentTab = 'all';
+  shuffleHomeOffset();
   document.querySelectorAll('.sort-btn').forEach((b) => { b.className = b.dataset.sort === activeSort ? SORT_ACTIVE : SORT_IDLE; });
   $('#categoriesDropdown').classList.add('hidden');
   hideLibrarySearch();
@@ -1100,42 +1278,141 @@ function resultCard(m) {
   </article>`;
 }
 
-function libraryCard(a) {
-  const pct = a.total ? Math.round((a.progress / a.total) * 100) : 0;
-  const isManga = a.type === 'MANGA';
-  const formatLabel = FORMAT_LABELS[a.format] || (isManga ? 'Manga' : 'Anime');
-  const unitLabel = isManga ? (a.total ? a.total + ' caps' : 'caps ?') : (a.total ? a.total + ' eps' : 'eps ?');
+function libraryUnitLabel(a) {
+  const unit = a.type === 'MANGA' ? 'caps' : 'eps';
+  return a.total ? `${a.total} ${unit}` : `${unit} ?`;
+}
 
-  return `<article class="bg-surface border border-line rounded-xl overflow-hidden flex flex-col text-xs" data-id="${a.id}">
+function libraryProgressPct(a) {
+  return a.total ? Math.round((a.progress / a.total) * 100) : 0;
+}
+
+function libraryStatusSelectHTML(a, cls = '') {
+  return `<select data-action="status" aria-label="Estado" class="bg-zinc-800 border border-line rounded text-[10px] p-1 cursor-pointer focus:outline-none focus:border-brand ${cls}">
+        ${Object.entries(statusDictOf(a.type)).map(([k, l]) => `<option value="${k}" ${a.status === k ? 'selected' : ''}>${l}</option>`).join('')}
+      </select>`;
+}
+
+function libraryStepperHTML(a) {
+  return `<button data-action="dec" class="w-6 h-6 rounded bg-zinc-800 font-bold shrink-0 cursor-pointer" aria-label="Restar uno">−</button>
+        <button data-action="set-ep" class="text-[11px] font-mono font-bold hover:text-brand px-1 py-0.5 rounded hover:bg-zinc-800 text-center truncate cursor-pointer" title="Número exacto">
+          ${a.progress}${a.total ? ' / ' + a.total : ''}
+        </button>
+        <button data-action="inc" class="w-6 h-6 rounded bg-brand text-black font-bold shrink-0 cursor-pointer" aria-label="Sumar uno">+</button>`;
+}
+
+function libraryFavRemoveHTML(a) {
+  return `<button data-action="fav" aria-pressed="${a.fav}" title="${a.fav ? 'Quitar de favoritos' : 'Añadir a favoritos'}"
+          class="px-2 py-1 rounded border text-[11px] font-bold cursor-pointer transition shrink-0 ${a.fav ? 'border-yellow-500 bg-yellow-500/20 text-yellow-400' : 'border-line bg-zinc-800 text-zinc-400 hover:text-yellow-400'}">${a.fav ? '⭐' : '☆'}</button>
+        <button data-action="remove" title="Quitar de la colección" aria-label="Quitar de la colección"
+          class="px-2 py-1 rounded border border-line bg-zinc-800 text-[11px] text-zinc-400 hover:text-red-400 hover:border-red-500/50 cursor-pointer transition shrink-0">🗑</button>`;
+}
+
+function libraryBadgeHTML(a, extra = '') {
+  const formatLabel = FORMAT_LABELS[a.format] || (a.type === 'MANGA' ? 'Manga' : 'Anime');
+  return `<span data-format="${esc(a.format || '')}" class="format-badge shrink-0 bg-black/80 text-[9px] font-bold px-1.5 py-0.5 rounded border border-line ${extra}">${formatLabel}</span>`;
+}
+
+function libraryCard(a) {
+  const pct = libraryProgressPct(a);
+  const unitLabel = libraryUnitLabel(a);
+
+  return `<article class="card-in bg-surface border border-line rounded-xl overflow-hidden flex flex-col text-xs" data-id="${a.id}">
     <div class="relative aspect-[3/4] bg-black">
       <img src="${esc(a.cover)}" alt="" loading="lazy" decoding="async" class="w-full h-full object-cover cursor-pointer" data-action="detail">
-      <span data-format="${esc(a.format || '')}" class="format-badge absolute top-1 left-1 bg-black/80 text-[9px] font-bold px-1.5 py-0.5 rounded border border-line">${formatLabel}</span>
+      ${libraryBadgeHTML(a, 'absolute top-1 left-1')}
     </div>
     <div class="p-2 flex flex-col gap-1 flex-1">
       <h3 class="font-semibold line-clamp-2 leading-tight">${esc(a.title)}</h3>
       <p class="text-[10px] text-zinc-400 mb-1">${unitLabel}</p>
       <div class="h-1.5 bg-zinc-800 rounded-full overflow-hidden my-1"><div class="h-full bg-brand" style="width:${pct}%"></div></div>
       <div class="flex items-center justify-between gap-1 mt-auto pt-1">
-        <button data-action="dec" class="w-6 h-6 rounded bg-zinc-800 font-bold cursor-pointer" aria-label="Restar uno">−</button>
-        <button data-action="set-ep" class="text-[11px] font-mono font-bold hover:text-brand px-1 py-0.5 rounded hover:bg-zinc-800 text-center truncate cursor-pointer" title="Número exacto">
-          ${a.progress}${a.total ? ' / ' + a.total : ''}
-        </button>
-        <button data-action="inc" class="w-6 h-6 rounded bg-brand text-black font-bold cursor-pointer" aria-label="Sumar uno">+</button>
+        ${libraryStepperHTML(a)}
       </div>
-      <select data-action="status" aria-label="Estado" class="mt-2 w-full bg-zinc-800 border border-line rounded text-[10px] p-1 cursor-pointer focus:outline-none focus:border-brand">
-        ${Object.entries(statusDictOf(a.type)).map(([k, l]) => `<option value="${k}" ${a.status === k ? 'selected' : ''}>${l}</option>`).join('')}
-      </select>
+      ${libraryStatusSelectHTML(a, 'mt-2 w-full')}
       <div class="flex items-center gap-1 mt-1.5">
-        <button data-action="fav" aria-pressed="${a.fav}" title="${a.fav ? 'Quitar de favoritos' : 'Añadir a favoritos'}"
-          class="px-2 py-1 rounded border text-[11px] font-bold cursor-pointer transition ${a.fav ? 'border-yellow-500 bg-yellow-500/20 text-yellow-400' : 'border-line bg-zinc-800 text-zinc-400 hover:text-yellow-400'}">
-          ${a.fav ? '⭐' : '☆'}
-        </button>
+        ${libraryFavRemoveHTML(a)}
         <span class="text-[10px] text-zinc-500 truncate">${esc(statusDictOf(a.type)[a.status] || '')}</span>
-        <button data-action="remove" title="Quitar de la colección" aria-label="Quitar de la colección"
-          class="ml-auto px-2 py-1 rounded border border-line bg-zinc-800 text-[11px] text-zinc-400 hover:text-red-400 hover:border-red-500/50 cursor-pointer transition">🗑</button>
       </div>
     </div>
   </article>`;
+}
+
+function libraryCardList(a) {
+  const pct = libraryProgressPct(a);
+  return `<article class="card-in bg-surface border border-line rounded-xl p-2 flex gap-2.5 text-xs" data-id="${a.id}">
+    <img src="${esc(a.cover)}" alt="" loading="lazy" decoding="async" class="w-16 sm:w-20 rounded-lg object-cover bg-black shrink-0 cursor-pointer" style="aspect-ratio:3/4" data-action="detail">
+    <div class="min-w-0 flex-1 flex flex-col gap-1">
+      <div class="flex items-start gap-2">
+        <h3 class="font-semibold leading-tight line-clamp-2 min-w-0 flex-1">${esc(a.title)}</h3>
+        ${libraryBadgeHTML(a)}
+      </div>
+      <p class="text-[10px] text-zinc-400 truncate">${esc(statusDictOf(a.type)[a.status] || '')} · ${libraryUnitLabel(a)}</p>
+      <div class="h-1.5 bg-zinc-800 rounded-full overflow-hidden"><div class="h-full bg-brand" style="width:${pct}%"></div></div>
+      <div class="flex flex-wrap items-center gap-1.5 mt-auto pt-0.5">
+        ${libraryStepperHTML(a)}
+        ${libraryStatusSelectHTML(a)}
+        ${libraryFavRemoveHTML(a)}
+      </div>
+    </div>
+  </article>`;
+}
+
+function libraryCardDetail(a) {
+  const pct = libraryProgressPct(a);
+  const status = statusDictOf(a.type)[a.status] || '';
+  const chips = [...(a.genres || []).slice(0, 3), ...(a.tags || []).slice(0, 2)];
+  const added = new Date(a.addedAt).toLocaleDateString('es', { day: '2-digit', month: 'short', year: 'numeric' });
+
+  return `<article class="card-in bg-surface border border-line rounded-xl p-3 text-xs" data-id="${a.id}">
+    <div class="flex gap-3">
+      <img src="${esc(a.cover)}" alt="" loading="lazy" decoding="async" class="w-20 sm:w-24 rounded-lg object-cover bg-black shrink-0 cursor-pointer" style="aspect-ratio:3/4" data-action="detail">
+      <div class="min-w-0 flex-1">
+        <div class="flex items-start gap-2">
+          <h3 class="font-bold text-sm leading-tight line-clamp-2 min-w-0 flex-1">${esc(a.title)}</h3>
+          ${libraryBadgeHTML(a)}
+        </div>
+        <p class="text-[10px] text-zinc-400 mt-1">${esc(status)} · ${libraryUnitLabel(a)}${a.fav ? ' · ⭐ Favorito' : ''}</p>
+        ${chips.length ? `<div class="flex flex-wrap gap-1 mt-1.5">${chips.map((c) => `<span class="text-[9px] px-1.5 py-0.5 rounded-full bg-zinc-800 border border-line text-zinc-300">${esc(c)}</span>`).join('')}</div>` : ''}
+        <div class="mt-2">
+          <div class="flex items-center justify-between text-[10px] text-zinc-400 mb-1">
+            <span>Progreso</span><span>${a.progress}${a.total ? ' / ' + a.total : ''} · ${pct}%</span>
+          </div>
+          <div class="h-2 bg-zinc-800 rounded-full overflow-hidden"><div class="h-full bg-brand" style="width:${pct}%"></div></div>
+        </div>
+        <p class="text-[10px] text-zinc-500 mt-1.5">Añadido el ${added}</p>
+      </div>
+    </div>
+    <div class="mt-2.5 pt-2 border-t border-line flex flex-wrap items-center gap-1.5">
+      ${libraryStepperHTML(a)}
+      ${libraryStatusSelectHTML(a)}
+      ${libraryFavRemoveHTML(a)}
+    </div>
+  </article>`;
+}
+
+function syncLibraryLayoutButtons() {
+  document.querySelectorAll('[data-action="set-library-layout"]').forEach((b) => {
+    const active = b.dataset.layout === libraryLayout;
+    b.className = `px-2.5 py-1.5 rounded-lg cursor-pointer transition ${active ? 'bg-brand text-black font-bold' : 'text-zinc-300 hover:text-white'}`;
+    b.setAttribute('aria-pressed', String(active));
+  });
+}
+
+function initLibraryLayout() {
+  try {
+    const saved = localStorage.getItem(LIBRARY_LAYOUT_KEY);
+    if (LIBRARY_LAYOUTS.includes(saved)) libraryLayout = saved;
+  } catch {}
+  syncLibraryLayoutButtons();
+}
+
+function setLibraryLayout(next) {
+  if (!LIBRARY_LAYOUTS.includes(next) || next === libraryLayout) return;
+  libraryLayout = next;
+  try { localStorage.setItem(LIBRARY_LAYOUT_KEY, next); } catch {}
+  syncLibraryLayoutButtons();
+  renderLibrary();
 }
 
 function renderLibrary() {
@@ -1153,7 +1430,18 @@ function renderLibrary() {
     ? (x, y) => collator.compare(x.title, y.title)
     : (x, y) => y.addedAt - x.addedAt);
 
-  $('#library').innerHTML = items.map(libraryCard).join('');
+  const library = $('#library');
+  library.className = libraryLayout === 'list'
+    ? 'flex flex-col gap-2'
+    : libraryLayout === 'detail'
+      ? 'grid grid-cols-1 sm:grid-cols-2 gap-3'
+      : 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3';
+  const renderCard = libraryLayout === 'list'
+    ? libraryCardList
+    : libraryLayout === 'detail'
+      ? libraryCardDetail
+      : libraryCard;
+  library.innerHTML = items.map(renderCard).join('');
   const entityLabel = showAll
     ? (items.length === 1 ? 'Título' : 'Títulos')
     : isManga
@@ -1220,11 +1508,20 @@ function cardActionControlsHTML(id, inList, m) {
     </div>`;
 }
 
+function localPageInfo(total, page, perPage) {
+  const lastPage = Math.max(1, Math.ceil(total / perPage));
+  const current = Math.min(Math.max(1, page), lastPage);
+  return { total, perPage, currentPage: current, lastPage, hasNextPage: current < lastPage, exact: true };
+}
+
 function renderPaginationControls(pageInfo) {
   if (!pageInfo || pageInfo.lastPage <= 1) return '';
   const current = pageInfo.currentPage;
   const last = pageInfo.lastPage;
-  let html = '';
+  // AniList devuelve `total` topado en 5000 y un `lastPage` que no refleja el
+  // número real de páginas; en ese caso no se muestra el total ni el salto final.
+  const exact = pageInfo.exact === true;
+  let html = `<span class="px-1 text-[11px] font-semibold text-zinc-400 whitespace-nowrap select-none">Página ${current}${exact ? ' de ' + last : ''}</span>`;
 
   if (current > 1) {
     html += `<button data-action="goto-page" data-page="${current - 1}" class="px-3 py-1 rounded bg-surface border border-line text-xs hover:border-brand cursor-pointer">Anterior</button>`;
@@ -1244,8 +1541,12 @@ function renderPaginationControls(pageInfo) {
   }
 
   if (end < last) {
-    if (end < last - 1) html += `<span class="text-zinc-500 px-1">...</span>`;
-    html += `<button data-action="goto-page" data-page="${last}" class="px-3 py-1 rounded bg-surface border border-line text-xs hover:border-brand cursor-pointer">${last}</button>`;
+    if (exact) {
+      if (end < last - 1) html += `<span class="text-zinc-500 px-1">...</span>`;
+      html += `<button data-action="goto-page" data-page="${last}" class="px-3 py-1 rounded bg-surface border border-line text-xs hover:border-brand cursor-pointer">${last}</button>`;
+    } else {
+      html += `<span class="text-zinc-500 px-1">...</span>`;
+    }
   }
 
   if (current < last) {
@@ -1259,6 +1560,42 @@ function renderPagination(pageInfo) {
   const html = renderPaginationControls(pageInfo);
   $('#paginationContainer').innerHTML = html;
   $('#paginationTopContainer').innerHTML = html;
+}
+
+function isIdleCatalog() {
+  return !showingLibrary
+    && !$('#searchInput').value.trim()
+    && activeCategory.label === 'Todos'
+    && activeFormatFilter === 'ALL'
+    && activeTypeFilter === 'ALL';
+}
+
+function shuffleHomeOffset() {
+  // Cada apertura de la página principal parte de un bloque distinto del
+  // catálogo para que las recomendaciones no sean siempre las mismas.
+  homeOffset = 1 + Math.floor(Math.random() * 15);
+}
+
+function setResultsCount(text) {
+  const el = $('#searchCount');
+  el.textContent = text || '';
+  el.classList.toggle('hidden', !text);
+}
+
+function partialSearchKey(q) {
+  return JSON.stringify([norm(q), activeCategory.label, activeTypeFilter, activeFormatFilter, activeSort]);
+}
+
+function renderPartialSearchPage(list) {
+  const info = localPageInfo(list.length, currentPage, PER_PAGE);
+  currentPage = info.currentPage;
+  const visible = list.slice((info.currentPage - 1) * PER_PAGE, info.currentPage * PER_PAGE);
+  const box = $('#searchResults');
+  box.innerHTML = visible.length
+    ? visible.map(resultCard).join('')
+    : '<p class="col-span-full text-zinc-400 py-4 text-center">No se encontraron resultados para este criterio.</p>';
+  renderPagination(info);
+  setResultsCount(info.total ? `${info.total} ${info.total === 1 ? 'resultado' : 'resultados'}` : 'Sin resultados');
 }
 
 async function loadMainCatalog() {
@@ -1276,23 +1613,69 @@ async function loadMainCatalog() {
 
   $('#searchTitle').textContent = titleText;
   syncSearchUI();
+
+  // Búsqueda parcial ya resuelta: se pagina en local sin volver a consultar.
+  if (searching && partialSearchState?.key === partialSearchKey(q)) {
+    renderPartialSearchPage(partialSearchState.media);
+    return;
+  }
+
   box.innerHTML = '<p class="col-span-full text-zinc-400 py-4 text-center">Cargando catálogo desde AniList…</p>';
   $('#paginationContainer').innerHTML = '';
   $('#paginationTopContainer').innerHTML = '';
+  setResultsCount('');
 
   try {
+    const idle = !searching && isIdleCatalog();
+    const offset = idle ? homeOffset : 1;
     const { media, pageInfo } = await fetchMediaPage({
       q: searching ? q : null,
       genre: activeCategory.genre,
       tag: activeCategory.tag,
       type: activeTypeFilter,
       format: activeFormatFilter,
-      page: currentPage,
-      sort: [activeSort]
+      page: offset + currentPage - 1,
+      sort: [activeSort],
     });
 
+    // La búsqueda de AniList solo acierta palabras completas. Si devolvió una
+    // página corta (p. ej. "poke" → 0), se completa con coincidencias parciales.
+    if (searching && currentPage === 1 && !pageInfo.hasNextPage && media.length < PER_PAGE) {
+      const { media: extra } = await fetchPartialMatches({
+        q,
+        genre: activeCategory.genre,
+        tag: activeCategory.tag,
+        type: activeTypeFilter,
+        format: activeFormatFilter,
+        sortKey: activeSort,
+        signal: beginApiRequest(),
+      });
+      const seen = new Set(media.map((m) => m.id));
+      const merged = media.slice();
+      for (const m of extra) {
+        if (!m || seen.has(m.id)) continue;
+        seen.add(m.id);
+        merged.push(m);
+      }
+      partialSearchState = { key: partialSearchKey(q), media: sortMediaLocally(merged, activeSort) };
+      renderPartialSearchPage(partialSearchState.media);
+      return;
+    }
+
+    partialSearchState = null;
+
+    // La paginación se muestra relativa al bloque de recomendaciones actual.
+    const shownInfo = idle && offset > 1
+      ? { ...pageInfo, currentPage, lastPage: Math.max(currentPage, pageInfo.lastPage - (offset - 1)) }
+      : pageInfo;
+
     box.innerHTML = media.length ? media.map(resultCard).join('') : '<p class="col-span-full text-zinc-400 py-4 text-center">No se encontraron resultados para este criterio.</p>';
-    renderPagination(pageInfo);
+    renderPagination(shownInfo);
+    if (pageInfo.total > 0 && pageInfo.total < RESULTS_CAP) {
+      setResultsCount(`${pageInfo.total} ${pageInfo.total === 1 ? 'título' : 'títulos'}`);
+    } else if (!idle && shownInfo.hasNextPage) {
+      setResultsCount(`${media.length}+ títulos`);
+    }
   } catch (e) {
     if (e.name !== 'AbortError') box.innerHTML = `<p class="col-span-full text-red-400 py-4 text-center">${esc(e.message)}. Revisa tu conexión.</p>`;
   }
@@ -1301,6 +1684,7 @@ async function loadMainCatalog() {
 function performSearch() {
   syncSearchUI();
   if (showingLibrary) { runLibrarySearch(); return; }
+  homeOffset = 1;
   currentPage = 1;
   loadMainCatalog();
 }
@@ -1426,11 +1810,18 @@ document.addEventListener('keydown', (e) => {
   else closeDetail();
 });
 
+function applyThemeUI(isDark) {
+  $('#themeIcon').textContent = isDark ? '☀️' : '🌙';
+  const btn = $('#themeToggleBtn');
+  const label = isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro';
+  btn.setAttribute('aria-label', label);
+  btn.title = label;
+}
+
 function toggleTheme() {
   const html = document.documentElement;
   const isDark = html.classList.toggle('dark');
-  $('#themeIcon').textContent = isDark ? '☀️' : '🌙';
-  $('#themeText').textContent = isDark ? 'Modo Claro' : 'Modo Oscuro';
+  applyThemeUI(isDark);
   try { localStorage.setItem('animelist_theme', isDark ? 'dark' : 'light'); } catch {}
 }
 
@@ -1439,8 +1830,7 @@ function initTheme() {
     const saved = localStorage.getItem('animelist_theme');
     if (saved === 'light') {
       document.documentElement.classList.remove('dark');
-      $('#themeIcon').textContent = '🌙';
-      $('#themeText').textContent = 'Modo Oscuro';
+      applyThemeUI(false);
     }
   } catch {}
 }
@@ -1454,6 +1844,7 @@ document.addEventListener('click', (e) => {
     activeSort = btn.dataset.sort;
     document.querySelectorAll('.sort-btn').forEach(b => { b.className = SORT_IDLE; });
     btn.className = SORT_ACTIVE;
+    homeOffset = 1;
     currentPage = 1;
     loadMainCatalog();
     return;
@@ -1481,12 +1872,17 @@ document.addEventListener('click', (e) => {
     case 'toggle-library-view':
       toggleLibraryView();
       break;
+    case 'set-library-layout':
+      setLibraryLayout(btn.dataset.layout);
+      break;
     case 'switch-media-type': {
       if (!libraryShowsAll() && currentMediaType === btn.dataset.type) break;
       currentMediaType = btn.dataset.type === 'MANGA' ? 'MANGA' : 'ANIME';
       currentTab = 'all';
       activeTypeFilter = currentMediaType;
       activeFormatFilter = 'ALL';
+      homeOffset = 1;
+      currentPage = 1;
       syncTypeFilterButtons();
       renderFormatOptions();
       refreshLibraryFilters();
@@ -1496,6 +1892,7 @@ document.addEventListener('click', (e) => {
       const catLabel = btn.dataset.label;
       activeCategory = ALL_CATEGORIES.find((c) => c.label === catLabel) || ALL_CATEGORIES[0];
       currentPage = 1;
+      homeOffset = 1;
       renderCategoryDropdown();
       $('#categoriesDropdown').classList.add('hidden');
       if (showingLibrary) {
@@ -1561,6 +1958,7 @@ document.addEventListener('click', (e) => {
       $('#searchInput').value = '';
       activeCategory = ALL_CATEGORIES[0];
       currentPage = 1;
+      homeOffset = 1;
       renderCategoryDropdown();
       if (showingLibrary) {
         hideLibrarySearch();
@@ -1597,6 +1995,8 @@ document.querySelectorAll('[data-type-filter]').forEach(btn => {
     if (type === activeTypeFilter) return;
     activeTypeFilter = type;
     activeFormatFilter = 'ALL';
+    homeOffset = 1;
+    currentPage = 1;
     if (type !== 'ALL') {
       currentMediaType = type;
       currentTab = 'all';
@@ -1607,7 +2007,6 @@ document.querySelectorAll('[data-type-filter]').forEach(btn => {
     if (showingLibrary) {
       refreshLibraryFilters();
     } else {
-      currentPage = 1;
       loadMainCatalog();
     }
   };
@@ -1615,10 +2014,11 @@ document.querySelectorAll('[data-type-filter]').forEach(btn => {
 
 $('#formatFilterSelect').onchange = (e) => {
   activeFormatFilter = e.target.value;
+  homeOffset = 1;
+  currentPage = 1;
   if (showingLibrary) {
     refreshLibraryFilters();
   } else {
-    currentPage = 1;
     loadMainCatalog();
   }
 };
@@ -2015,6 +2415,8 @@ GoogleCloud.subscribe(renderAuthUI);
 Store.onChange = () => GoogleCloud.queuePush();
 
 initTheme();
+initLibraryLayout();
+shuffleHomeOffset();
 Store.load();
 renderCategoryDropdown();
 syncTypeFilterButtons();
