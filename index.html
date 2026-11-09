@@ -62,6 +62,10 @@
   .format-badge[data-format="NOVEL"] { color: #6ee7b7; }
   .format-badge[data-format="ONE_SHOT"] { color: #fcd34d; }
 
+  /* El estado activo del favorito se controla con data-fav para poder
+     actualizarlo en sitio, sin repintar la tarjeta. */
+  .fav-btn[data-fav="1"] { border-color: #eab308; background: rgba(234,179,8,.2); color: #facc15; }
+
   select option { background-color: #1c1c20; color: #f4f4f5; }
   html:not(.dark) select option { background-color: #ffffff; color: #18181b; }
   @keyframes cardIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
@@ -201,11 +205,11 @@
   <!-- VISTA CATÁLOGO -->
   <div id="catalogView">
     <div class="flex gap-2 overflow-x-auto no-scrollbar mb-4" id="sortBar">
-      <button data-sort="POPULARITY_DESC" class="sort-btn shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border bg-brand border-brand text-black cursor-pointer">🔥 Más populares</button>
       <button data-sort="TITLE_ENGLISH" class="sort-btn shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border bg-surface border-line text-zinc-300 cursor-pointer">🔤 A-Z</button>
+      <button data-sort="POPULARITY_DESC" class="sort-btn shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border bg-brand border-brand text-black cursor-pointer">🔥 Más populares</button>
       <button data-sort="TRENDING_DESC" class="sort-btn shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border bg-surface border-line text-zinc-300 cursor-pointer">👁️ Más vistos</button>
-      <button data-sort="SCORE_DESC" class="sort-btn shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border bg-surface border-line text-zinc-300 cursor-pointer">⭐ Mejores votados</button>
-      <button data-sort="HIDDEN_GEMS" class="sort-btn shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border bg-surface border-line text-zinc-300 cursor-pointer">💎 Mejores valorados con pocas reseñas</button>
+      <button data-sort="SCORE_DESC" class="sort-btn shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border bg-surface border-line text-zinc-300 cursor-pointer">⭐ Mejores valorados</button>
+      <button data-sort="HIDDEN_GEMS" class="sort-btn shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold border bg-surface border-line text-zinc-300 cursor-pointer">💎 Joyas Ocultas</button>
     </div>
 
     <section id="searchPanel" class="mb-8">
@@ -549,12 +553,16 @@ const mediaCache = new Map();
 let activeCategory = ALL_CATEGORIES[0];
 let activeSort = 'POPULARITY_DESC';
 let currentPage = 1;
-const PER_PAGE = 20;
-// AniList devuelve como máximo 5000 resultados (50 páginas de 100), por eso
-// `lastPage` se queda fijo en 250 con 20 por página. Se marca como aproximado.
+// El catálogo muestra un número fijo de títulos por página. Como AniList
+// permite pedir hasta 50 y además se ocultan los títulos ya guardados, se van
+// acumulando páginas de la API hasta completar `PAGE_SIZE`.
+const PAGE_SIZE = 25;
+const API_PAGE_SIZE = 50;
+// AniList devuelve como máximo 5000 resultados, así que el total es aproximado.
 const RESULTS_CAP = 5000;
 let homeOffset = 1;
 let partialSearchState = null;
+let catalogFeed = null;
 let currentMediaType = 'ANIME';
 let activeTypeFilter = 'ALL';
 let activeFormatFilter = 'ALL';
@@ -594,13 +602,13 @@ function beginApiRequest() {
   return apiCtrl.signal;
 }
 
-async function fetchMediaPage({ q = null, genre = null, tag = null, type = null, format = null, page = 1, sort = ['POPULARITY_DESC'], perPage = PER_PAGE } = {}) {
+async function fetchMediaPage({ q = null, genre = null, tag = null, type = null, format = null, page = 1, sort = ['POPULARITY_DESC'], perPage = API_PAGE_SIZE } = {}) {
   const signal = beginApiRequest();
 
   const sortKey = Array.isArray(sort) ? sort[0] : sort;
   const hiddenGems = sortKey === 'HIDDEN_GEMS';
 
-  const vars = { page, perPage: hiddenGems ? 50 : perPage, sort: hiddenGems ? ['SCORE_DESC'] : [sortKey] };
+  const vars = { page, perPage: hiddenGems ? API_PAGE_SIZE : perPage, sort: hiddenGems ? ['SCORE_DESC'] : [sortKey] };
   if (q) vars.q = q;
   if (genre) vars.genre = genre;
   if (tag) vars.tag = tag;
@@ -610,18 +618,23 @@ async function fetchMediaPage({ q = null, genre = null, tag = null, type = null,
   const data = await gql(ANILIST_PAGINATED_QUERY, vars, signal);
   const pageInfo = data.Page.pageInfo;
   let media = data.Page.media;
+  // Longitud real devuelta por la API, antes de filtrar nada.
+  const rawCount = media.length;
 
   media.forEach((m) => mediaCache.set(m.id, { ...mediaCache.get(m.id), ...m }));
 
   if (hiddenGems) {
     media = media.filter(m => (m.averageScore || 0) >= 75 && (m.popularity || 0) < 60000);
     media.sort((a, b) => (b.averageScore || 0) - (a.averageScore || 0));
-    media = media.slice(0, PER_PAGE);
   } else if (sortKey === 'TITLE_ENGLISH') {
     media = media.slice().sort((a, b) => collator.compare(titleOf(a), titleOf(b)));
   }
 
-  return { media, pageInfo };
+  // Un título que ya tiene estado en la colección (visto, en emisión, en espera,
+  // leído…) no debe volver a salir en el catálogo: se muestra solo en la colección.
+  const unsaved = media.filter((m) => !Store.get(m.id));
+
+  return { media: unsaved, pageInfo, rawCount };
 }
 
 async function fetchDetail(id) {
@@ -876,6 +889,9 @@ function hideLibrarySearch() {
 }
 
 const LIBRARY_SEARCH_MAX = 20;
+// Se piden 50 a AniList y se muestran 20: así, aunque varios resultados ya estén
+// en la colección, el panel sigue llenándose con títulos nuevos.
+const LIBRARY_SEARCH_FETCH = 50;
 
 function searchSkeleton() {
   if (libraryLayout === 'list') {
@@ -951,7 +967,7 @@ async function runLibrarySearch() {
   box.innerHTML = searchSkeleton();
 
   try {
-    const { media, pageInfo } = await fetchMediaPage({
+    const { media, pageInfo, rawCount } = await fetchMediaPage({
       q,
       genre: activeCategory.genre,
       tag: activeCategory.tag,
@@ -959,13 +975,13 @@ async function runLibrarySearch() {
       format: activeFormatFilter,
       page: 1,
       sort: ['POPULARITY_DESC'],
-      perPage: LIBRARY_SEARCH_MAX,
+      perPage: LIBRARY_SEARCH_FETCH,
     });
     if (token !== librarySearchToken || !showingLibrary) return;
 
     let results = media;
     let total = pageInfo.hasNextPage ? null : media.length;
-    if (!pageInfo.hasNextPage && media.length < LIBRARY_SEARCH_MAX) {
+    if (!pageInfo.hasNextPage && rawCount < LIBRARY_SEARCH_FETCH) {
       const { media: extra } = await fetchPartialMatches({
         q,
         genre: activeCategory.genre,
@@ -979,7 +995,7 @@ async function runLibrarySearch() {
       const seen = new Set(results.map((m) => m.id));
       const merged = results.slice();
       for (const m of extra) {
-        if (!m || seen.has(m.id)) continue;
+        if (!m || seen.has(m.id) || Store.get(m.id)) continue;
         seen.add(m.id);
         merged.push(m);
       }
@@ -988,14 +1004,19 @@ async function runLibrarySearch() {
     }
 
     const visible = results.slice(0, LIBRARY_SEARCH_MAX);
-    count.textContent = total === null
-      ? `${LIBRARY_SEARCH_MAX}+ resultados`
-      : !total
-        ? 'Sin resultados'
+    if (!visible.length) {
+      count.textContent = rawCount > 0 ? 'Todo en tu colección' : 'Sin resultados';
+    } else {
+      count.textContent = total === null
+        ? `${visible.length}${visible.length >= LIBRARY_SEARCH_MAX ? '+' : ''} resultados`
         : visible.length < total
           ? `Mostrando ${visible.length} de ${total}`
           : `${total} ${total === 1 ? 'resultado' : 'resultados'}`;
-    setLibrarySearchSnapshot(visible, `<p class="col-span-full text-sm text-zinc-400 py-8 text-center">No se encontró nada para “${esc(q)}” en el catálogo de AniList.</p>`);
+    }
+    const emptyHtml = !visible.length && rawCount > 0
+      ? '<p class="col-span-full text-sm text-zinc-400 py-8 text-center">Todos los resultados de esta búsqueda ya están en tu colección.</p>'
+      : `<p class="col-span-full text-sm text-zinc-400 py-8 text-center">No se encontró nada para “${esc(q)}” en el catálogo de AniList.</p>`;
+    setLibrarySearchSnapshot(visible, emptyHtml);
   } catch (e) {
     if (token !== librarySearchToken || e.name === 'AbortError') return;
     count.textContent = 'Error';
@@ -1200,7 +1221,7 @@ function addAnimeWithStatus(m, initialStatus, isFav = false) {
     renderFormatOptions();
   }
   renderAll();
-  refreshCardControls(m.id);
+  dropFromCatalog(m.id);
 }
 
 function changeEpisode(id, delta) {
@@ -1410,6 +1431,48 @@ function renderLibrarySearchSnapshot() {
     : librarySearchSnapshot.emptyHtml;
 }
 
+// Al guardar un título, desaparece del catálogo en el acto (no espera a
+// recargar): desde ese momento solo se ve en la colección.
+function dropFromCatalog(id) {
+  if (catalogFeed) {
+    catalogFeed.items = catalogFeed.items.filter((m) => m.id !== id);
+    catalogFeed.seen?.delete(id);
+  }
+  for (const snap of [catalogSnapshot, librarySearchSnapshot]) {
+    if (!snap) continue;
+    snap.media = snap.media.filter((m) => m.id !== id);
+  }
+  if (partialSearchState) partialSearchState.media = partialSearchState.media.filter((m) => m.id !== id);
+  refillCatalogPage();
+  renderCatalogSnapshot();
+  renderLibrarySearchSnapshot();
+}
+
+// Al quitar un título de una página, el siguiente del feed ocupa su hueco para
+// que la página siga mostrando el mismo número de tarjetas.
+function refillCatalogPage() {
+  if (!catalogSnapshot || !catalogFeed?.items?.length || partialSearchState) return;
+  const start = (currentPage - 1) * PAGE_SIZE;
+  catalogSnapshot.media = catalogFeed.items.slice(start, start + PAGE_SIZE);
+}
+
+// Tras sincronizar la nube pueden llegar títulos guardados: se quitan del
+// catálogo ya visible para no duplicarlos.
+function pruneSavedFromCatalog() {
+  if (catalogFeed) {
+    catalogFeed.items = catalogFeed.items.filter((m) => !Store.get(m.id));
+    catalogFeed.seen = new Set(catalogFeed.items.map((m) => m.id));
+  }
+  for (const snap of [catalogSnapshot, librarySearchSnapshot]) {
+    if (!snap) continue;
+    snap.media = snap.media.filter((m) => !Store.get(m.id));
+  }
+  if (partialSearchState) partialSearchState.media = partialSearchState.media.filter((m) => !Store.get(m.id));
+  refillCatalogPage();
+  renderCatalogSnapshot();
+  renderLibrarySearchSnapshot();
+}
+
 function libraryUnitLabel(a) {
   const unit = a.type === 'MANGA' ? 'caps' : 'eps';
   return a.total ? `${a.total} ${unit}` : `${unit} ?`;
@@ -1433,11 +1496,14 @@ function libraryStepperHTML(a) {
         <button data-action="inc" class="w-6 h-6 rounded bg-brand text-black font-bold shrink-0 cursor-pointer" aria-label="Sumar uno">+</button>`;
 }
 
-function libraryFavRemoveHTML(a) {
-  return `<button data-action="fav" aria-pressed="${a.fav}" title="${a.fav ? 'Quitar de favoritos' : 'Añadir a favoritos'}"
-          class="px-2 py-1 rounded border text-[11px] font-bold cursor-pointer transition shrink-0 ${a.fav ? 'border-yellow-500 bg-yellow-500/20 text-yellow-400' : 'border-line bg-zinc-800 text-zinc-400 hover:text-yellow-400'}">${a.fav ? '⭐' : '☆'}</button>
-        <button data-action="remove" title="Quitar de la colección" aria-label="Quitar de la colección"
-          class="px-2 py-1 rounded border border-line bg-zinc-800 text-[11px] text-zinc-400 hover:text-red-400 hover:border-red-500/50 cursor-pointer transition shrink-0">🗑</button>`;
+function libraryFavBtnHTML(a, sizeCls = '') {
+  return `<button data-action="fav" data-fav="${a.fav ? '1' : '0'}" aria-pressed="${a.fav}" title="${a.fav ? 'Quitar de favoritos' : 'Añadir a favoritos'}"
+          class="fav-btn px-2 py-1 rounded border border-line bg-zinc-800 text-[11px] text-zinc-400 hover:text-yellow-400 font-bold cursor-pointer transition shrink-0 ${sizeCls}">${a.fav ? '⭐' : '☆'}</button>`;
+}
+
+function libraryRemoveBtnHTML(sizeCls = '') {
+  return `<button data-action="remove" title="Quitar de la colección" aria-label="Quitar de la colección"
+          class="px-2 py-1 rounded border border-line bg-zinc-800 text-[11px] text-zinc-400 hover:text-red-400 hover:border-red-500/50 cursor-pointer transition shrink-0 ${sizeCls}">🗑</button>`;
 }
 
 function libraryBadgeHTML(a, extra = '') {
@@ -1462,9 +1528,9 @@ function libraryCard(a) {
         ${libraryStepperHTML(a)}
       </div>
       ${libraryStatusSelectHTML(a, 'mt-2 w-full')}
-      <div class="flex items-center gap-1 mt-1.5">
-        ${libraryFavRemoveHTML(a)}
-        <span class="text-[10px] text-zinc-500 truncate">${esc(statusDictOf(a.type)[a.status] || '')}</span>
+      <div class="flex items-center justify-between gap-1 mt-1.5">
+        ${libraryFavBtnHTML(a)}
+        ${libraryRemoveBtnHTML()}
       </div>
     </div>
   </article>`;
@@ -1484,7 +1550,10 @@ function libraryCardList(a) {
       <div class="flex flex-wrap items-center gap-1.5 mt-auto pt-0.5">
         ${libraryStepperHTML(a)}
         ${libraryStatusSelectHTML(a)}
-        ${libraryFavRemoveHTML(a)}
+        <div class="ml-auto flex items-center gap-1">
+          ${libraryFavBtnHTML(a, 'px-1.5 py-0.5')}
+          ${libraryRemoveBtnHTML('px-1.5 py-0.5')}
+        </div>
       </div>
     </div>
   </article>`;
@@ -1518,7 +1587,10 @@ function libraryCardDetail(a) {
     <div class="mt-2.5 pt-2 border-t border-line flex flex-wrap items-center gap-1.5">
       ${libraryStepperHTML(a)}
       ${libraryStatusSelectHTML(a)}
-      ${libraryFavRemoveHTML(a)}
+      <div class="ml-auto flex items-center gap-1">
+        ${libraryFavBtnHTML(a, 'px-1.5 py-0.5')}
+        ${libraryRemoveBtnHTML('px-1.5 py-0.5')}
+      </div>
     </div>
   </article>`;
 }
@@ -1550,33 +1622,18 @@ function setLibraryLayout(next) {
   renderLibrarySearchSnapshot();
 }
 
-function renderLibrary() {
-  const isManga = currentMediaType === 'MANGA';
-  const showAll = libraryShowsAll();
-  $('#collectionTitle').textContent = showAll
-    ? 'Mi Colección (Anime y Manga)'
-    : (isManga ? 'Colección de Manga' : 'Colección de Anime');
-
+function libraryFilteredItems() {
   let items = collectionItems();
   if (currentTab === 'fav') items = items.filter((a) => a.fav);
   else if (currentTab !== 'all') items = items.filter((a) => a.status === currentTab);
-
-  items = items.slice().sort(librarySort === 'az'
+  return items.slice().sort(librarySort === 'az'
     ? (x, y) => collator.compare(x.title, y.title)
     : (x, y) => y.addedAt - x.addedAt);
+}
 
-  const library = $('#library');
-  library.className = libraryLayout === 'list'
-    ? 'flex flex-col gap-2'
-    : libraryLayout === 'detail'
-      ? 'grid grid-cols-1 sm:grid-cols-2 gap-3'
-      : 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3';
-  const renderCard = libraryLayout === 'list'
-    ? libraryCardList
-    : libraryLayout === 'detail'
-      ? libraryCardDetail
-      : libraryCard;
-  library.innerHTML = items.map(renderCard).join('');
+function updateLibraryMeta(items) {
+  const isManga = currentMediaType === 'MANGA';
+  const showAll = libraryShowsAll();
   const entityLabel = showAll
     ? (items.length === 1 ? 'Título' : 'Títulos')
     : isManga
@@ -1594,6 +1651,50 @@ function renderLibrary() {
       ? `Ningún título coincide con los filtros activos (${entityLabel.toLowerCase()}).`
       : `Tu colección de ${showAll ? 'anime y manga' : isManga ? 'manga' : 'anime'} está vacía. Busca arriba y pulsa “+ Agregar”.`;
   }
+}
+
+function renderLibrary() {
+  const showAll = libraryShowsAll();
+  const isManga = currentMediaType === 'MANGA';
+  $('#collectionTitle').textContent = showAll
+    ? 'Mi Colección (Anime y Manga)'
+    : (isManga ? 'Colección de Manga' : 'Colección de Anime');
+
+  const items = libraryFilteredItems();
+  const library = $('#library');
+  library.className = libraryLayout === 'list'
+    ? 'flex flex-col gap-2'
+    : libraryLayout === 'detail'
+      ? 'grid grid-cols-1 sm:grid-cols-2 gap-3'
+      : 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3';
+  const renderCard = libraryLayout === 'list'
+    ? libraryCardList
+    : libraryLayout === 'detail'
+      ? libraryCardDetail
+      : libraryCard;
+  library.innerHTML = items.map(renderCard).join('');
+  updateLibraryMeta(items);
+}
+
+// Actualiza contadores, pestañas y estado vacío sin volver a pintar las
+// tarjetas: así marcar favorito o quitar un título no hace parpadear la pantalla.
+function syncLibraryMeta() {
+  updateLibraryMeta(libraryFilteredItems());
+  renderTabs();
+}
+
+function updateFavCards(id, fav) {
+  document.querySelectorAll(`article[data-id="${id}"] [data-action="fav"]`).forEach((btn) => {
+    if (!btn.classList.contains('fav-btn')) return;
+    btn.dataset.fav = fav ? '1' : '0';
+    btn.textContent = fav ? '⭐' : '☆';
+    btn.setAttribute('aria-pressed', String(fav));
+    btn.title = fav ? 'Quitar de favoritos' : 'Añadir a favoritos';
+  });
+}
+
+function removeCardFromLibrary(id) {
+  document.querySelectorAll(`#library article[data-id="${id}"]`).forEach((el) => el.remove());
 }
 
 function renderAll() { renderTabs(); renderLibrary(); }
@@ -1722,12 +1823,63 @@ function partialSearchKey(q) {
 }
 
 function renderPartialSearchPage(list) {
-  const info = localPageInfo(list.length, currentPage, PER_PAGE);
+  const info = localPageInfo(list.length, currentPage, PAGE_SIZE);
   currentPage = info.currentPage;
-  const visible = list.slice((info.currentPage - 1) * PER_PAGE, info.currentPage * PER_PAGE);
-  setCatalogSnapshot(visible, '<p class="col-span-full w-full text-zinc-400 py-4 text-center">No se encontraron resultados para este criterio.</p>');
+  const visible = list.slice((info.currentPage - 1) * PAGE_SIZE, info.currentPage * PAGE_SIZE);
+  const emptyText = partialSearchState?.emptyText || 'No se encontraron resultados para este criterio.';
+  setCatalogSnapshot(visible, `<p class="col-span-full w-full text-zinc-400 py-4 text-center">${esc(emptyText)}</p>`);
   renderPagination(info);
   setResultsCount(info.total ? `${info.total} ${info.total === 1 ? 'resultado' : 'resultados'}` : 'Sin resultados');
+}
+
+// Acumula páginas de AniList hasta tener `needed` títulos visibles, para que
+// cada página del catálogo mantenga siempre el mismo tamaño aunque la colección
+// oculte títulos.
+async function fillCatalogFeed(needed) {
+  const feed = catalogFeed;
+  let guard = 0;
+  while (feed.items.length < needed && feed.hasNext && guard < 20) {
+    guard += 1;
+    const { media, pageInfo, rawCount } = await fetchMediaPage({
+      ...feed.filters,
+      page: feed.lastApiPage + 1,
+    });
+    if (catalogFeed !== feed) return;
+    feed.lastApiPage += 1;
+    feed.total = pageInfo.total;
+    feed.rawSeen += rawCount;
+    feed.hasNext = pageInfo.hasNextPage;
+    for (const m of media) {
+      if (feed.seen.has(m.id)) continue;
+      feed.seen.add(m.id);
+      feed.items.push(m);
+    }
+    if (!rawCount) break;
+  }
+}
+
+function catalogPageInfo() {
+  const feed = catalogFeed;
+  const current = currentPage;
+  const hasMore = feed.items.length > current * PAGE_SIZE || feed.hasNext;
+  const scannedLast = Math.max(1, Math.ceil(feed.items.length / PAGE_SIZE));
+  let last = scannedLast;
+  let exact = false;
+  // En búsquedas, AniList informa un total topado (5000) que luego no se
+  // corresponde con los resultados reales: no conviene estimar páginas lejanas.
+  const cappedSearch = !!feed.filters.q && feed.total >= RESULTS_CAP;
+
+  if (!feed.hasNext) {
+    // Ya se recorrió todo el flujo: el número de páginas es exacto.
+    exact = true;
+  } else if (feed.plain && feed.total > 0 && !cappedSearch) {
+    const remaining = Math.max(0, feed.total - (feed.startApiPage - 1) * API_PAGE_SIZE);
+    last = Math.max(current + 1, Math.ceil(remaining / PAGE_SIZE));
+  } else {
+    last = Math.max(scannedLast, current + 1);
+  }
+
+  return { total: feed.total, perPage: PAGE_SIZE, currentPage: current, lastPage: last, hasNextPage: hasMore, exact };
 }
 
 async function loadMainCatalog() {
@@ -1741,7 +1893,7 @@ async function loadMainCatalog() {
   else if (activeCategory.label !== 'Todos') titleText = `Categoría: ${activeCategory.label}`;
   if (activeFormatFilter !== 'ALL') titleText += ` · ${FORMAT_LABELS[activeFormatFilter] || activeFormatFilter}`;
   if (activeSort === 'TITLE_ENGLISH') titleText += ' · A-Z';
-  if (activeSort === 'HIDDEN_GEMS') titleText += ' · Joyas ocultas';
+  if (activeSort === 'HIDDEN_GEMS') titleText += ' · Joyas Ocultas';
 
   $('#searchTitle').textContent = titleText;
   syncSearchUI();
@@ -1761,20 +1913,49 @@ async function loadMainCatalog() {
 
   try {
     const idle = !searching && isIdleCatalog();
-    const offset = idle ? homeOffset : 1;
-    const { media, pageInfo } = await fetchMediaPage({
-      q: searching ? q : null,
-      genre: activeCategory.genre,
-      tag: activeCategory.tag,
-      type: activeTypeFilter,
-      format: activeFormatFilter,
-      page: offset + currentPage - 1,
-      sort: [activeSort],
-    });
+    const startApiPage = idle ? homeOffset : 1;
+    const feedKey = JSON.stringify([
+      searching ? norm(q) : null,
+      activeCategory.label,
+      activeTypeFilter,
+      activeFormatFilter,
+      activeSort,
+      startApiPage,
+    ]);
 
-    // La búsqueda de AniList solo acierta palabras completas. Si devolvió una
-    // página corta (p. ej. "poke" → 0), se completa con coincidencias parciales.
-    if (searching && currentPage === 1 && !pageInfo.hasNextPage && media.length < PER_PAGE) {
+    if (!catalogFeed || catalogFeed.key !== feedKey) {
+      catalogFeed = {
+        key: feedKey,
+        startApiPage,
+        lastApiPage: startApiPage - 1,
+        hasNext: true,
+        total: 0,
+        rawSeen: 0,
+        items: [],
+        seen: new Set(),
+        // Solo "Joyas Ocultas" descarta títulos de la API, así que su total
+        // real no se puede estimar con el total de AniList.
+        plain: activeSort !== 'HIDDEN_GEMS',
+        filters: {
+          q: searching ? q : null,
+          genre: activeCategory.genre,
+          tag: activeCategory.tag,
+          type: activeTypeFilter,
+          format: activeFormatFilter,
+          sort: [activeSort],
+        },
+      };
+    }
+
+    const feed = catalogFeed;
+    await fillCatalogFeed(currentPage * PAGE_SIZE);
+    if (catalogFeed !== feed) return;
+
+    // La búsqueda de AniList solo acierta palabras completas. Si devolvió pocos
+    // resultados (p. ej. "poke" → 0), se completa con coincidencias parciales.
+    // Se mira `rawSeen` (antes de quitar los títulos guardados) para no
+    // disparar esta búsqueda solo porque la colección ocultó resultados.
+    if (searching && currentPage === 1 && !feed.hasNext && feed.rawSeen < API_PAGE_SIZE) {
       const { media: extra } = await fetchPartialMatches({
         q,
         genre: activeCategory.genre,
@@ -1784,31 +1965,50 @@ async function loadMainCatalog() {
         sortKey: activeSort,
         signal: beginApiRequest(),
       });
-      const seen = new Set(media.map((m) => m.id));
-      const merged = media.slice();
+      if (catalogFeed !== feed) return;
+      const seen = new Set(feed.items.map((m) => m.id));
+      const merged = feed.items.slice();
       for (const m of extra) {
-        if (!m || seen.has(m.id)) continue;
+        if (!m || seen.has(m.id) || Store.get(m.id)) continue;
         seen.add(m.id);
         merged.push(m);
       }
-      partialSearchState = { key: partialSearchKey(q), media: sortMediaLocally(merged, activeSort) };
+      const extraSaved = extra.some((m) => m && Store.get(m.id));
+      partialSearchState = {
+        key: partialSearchKey(q),
+        media: sortMediaLocally(merged, activeSort),
+        emptyText: feed.rawSeen > 0 || extraSaved
+          ? 'Los títulos de esta búsqueda ya están en tu colección.'
+          : 'No se encontraron resultados para este criterio.',
+      };
       renderPartialSearchPage(partialSearchState.media);
       return;
     }
 
     partialSearchState = null;
 
-    // La paginación se muestra relativa al bloque de recomendaciones actual.
-    const shownInfo = idle && offset > 1
-      ? { ...pageInfo, currentPage, lastPage: Math.max(currentPage, pageInfo.lastPage - (offset - 1)) }
-      : pageInfo;
+    // Si se pidió una página más allá del final real, se retrocede a la última.
+    if (!feed.hasNext) {
+      const lastVisible = Math.max(1, Math.ceil(feed.items.length / PAGE_SIZE));
+      if (currentPage > lastVisible) currentPage = lastVisible;
+    }
 
-    setCatalogSnapshot(media, '<p class="col-span-full w-full text-zinc-400 py-4 text-center">No se encontraron resultados para este criterio.</p>');
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const media = feed.items.slice(start, start + PAGE_SIZE);
+    const shownInfo = catalogPageInfo();
+
+    const emptyHtml = !media.length && feed.items.length === 0 && feed.rawSeen > 0
+      ? '<p class="col-span-full w-full text-zinc-400 py-4 text-center">Los títulos de esta página ya están en tu colección. Prueba otra página o cambia los filtros.</p>'
+      : '<p class="col-span-full w-full text-zinc-400 py-4 text-center">No se encontraron resultados para este criterio.</p>';
+    setCatalogSnapshot(media, emptyHtml);
     renderPagination(shownInfo);
-    if (pageInfo.total > 0 && pageInfo.total < RESULTS_CAP) {
-      setResultsCount(`${pageInfo.total} ${pageInfo.total === 1 ? 'título' : 'títulos'}`);
+    if (!feed.hasNext) {
+      const n = feed.items.length;
+      setResultsCount(n ? `${n} ${n === 1 ? 'título' : 'títulos'}` : 'Sin resultados');
+    } else if (feed.total > 0 && feed.total < RESULTS_CAP) {
+      setResultsCount(`${feed.total} ${feed.total === 1 ? 'título' : 'títulos'}`);
     } else if (!idle && shownInfo.hasNextPage) {
-      setResultsCount(`${media.length}+ títulos`);
+      setResultsCount(`${feed.items.length}+ títulos`);
     }
   } catch (e) {
     if (e.name !== 'AbortError') {
@@ -2057,7 +2257,10 @@ document.addEventListener('click', (e) => {
       if (!a) break;
       a.fav = !a.fav;
       Store.touch(a);
-      Store.save(); renderAll(); refreshCardControls(id);
+      Store.save();
+      updateFavCards(id, a.fav);
+      if (currentTab === 'fav' && !a.fav) removeCardFromLibrary(id);
+      syncLibraryMeta();
       toast(a.fav ? 'Añadido a favoritos' : 'Quitado de favoritos');
       break;
     }
@@ -2067,8 +2270,8 @@ document.addEventListener('click', (e) => {
       if (confirm('¿Quitar "' + a.title + '" de tu colección?')) {
         Store.remove(id);
         if (detailId === id) closeDetail();
-        renderAll();
-        refreshCardControls(id);
+        removeCardFromLibrary(id);
+        syncLibraryMeta();
         toast('Eliminado de tu colección');
       }
       break;
@@ -2411,6 +2614,7 @@ const GoogleCloud = (() => {
       try { localStorage.setItem(DB_KEY, JSON.stringify(Store.data)); } catch {}
       renderAll();
       refreshVisibleCards();
+      pruneSavedFromCatalog();
       if (JSON.stringify(merged) !== JSON.stringify(remoteNorm)) {
         applyingRemote = false;
         pushNow();
