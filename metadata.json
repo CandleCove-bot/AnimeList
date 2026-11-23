@@ -1,0 +1,6 @@
+{
+  "name": "AnimeList",
+  "description": "Aplicación de entretenimiento para buscar, seguir y organizar tus animés y mangas favoritos.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
